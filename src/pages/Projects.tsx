@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
+import TextReveal from "@/components/TextReveal";
 import { ExternalLink, GitBranch, Star } from "lucide-react";
 
 const projects = [
@@ -55,13 +56,26 @@ const Projects = () => {
       import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
         gsap.registerPlugin(ScrollTrigger);
         const ctx = gsap.context(() => {
-          gsap.fromTo(".projects-title", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out", delay: 0.2 });
-
+          // Project cards with staggered 3D entrance
           gsap.utils.toArray<HTMLElement>(".project-card").forEach((card, i) => {
-            gsap.fromTo(card, { y: 40, opacity: 0 }, {
-              y: 0, opacity: 1, duration: 0.6, delay: (i % 3) * 0.1,
-              scrollTrigger: { trigger: card, start: "top 88%" },
-            });
+            const col = i % 3;
+            const rotateY = col === 0 ? -8 : col === 2 ? 8 : 0;
+
+            gsap.fromTo(
+              card,
+              { y: 80, opacity: 0, rotateY, rotateX: 8, scale: 0.95 },
+              {
+                y: 0,
+                opacity: 1,
+                rotateY: 0,
+                rotateX: 0,
+                scale: 1,
+                duration: 0.8,
+                delay: (i % 3) * 0.12,
+                ease: "power3.out",
+                scrollTrigger: { trigger: card, start: "top 90%" },
+              }
+            );
           });
         }, ref);
         return () => ctx.revert();
@@ -73,16 +87,21 @@ const Projects = () => {
     <Layout>
       <div ref={ref} className="px-6 md:px-0">
         <section className="container max-w-4xl pt-12 md:pt-16">
-          <div className="projects-title opacity-0 mb-12">
-            <h1 className="text-3xl md:text-5xl font-bold font-display mb-4">
-              My <span className="gradient-text">Projects</span>
-            </h1>
+          <div className="mb-12">
+            <TextReveal
+              as="h1"
+              className="text-3xl md:text-5xl font-bold font-display mb-4"
+              delay={0.1}
+              stagger={0.08}
+            >
+              My Projects
+            </TextReveal>
             <p className="text-muted-foreground text-lg">
               A selection of projects I've built — from client work to open source.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-16" style={{ perspective: "1000px" }}>
             {projects.map((project) => (
               <div key={project.title} className="project-card opacity-0 bg-card border border-border rounded-xl p-5 hover-lift group cursor-pointer flex flex-col">
                 <div className="flex items-center justify-between mb-3">

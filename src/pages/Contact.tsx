@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Layout from "@/components/Layout";
+import TextReveal from "@/components/TextReveal";
+import MagneticButton from "@/components/MagneticButton";
 import { Mail, Github, Linkedin, Twitter, Send } from "lucide-react";
 
 const Contact = () => {
@@ -9,9 +11,19 @@ const Contact = () => {
   useEffect(() => {
     import("gsap").then(({ default: gsap }) => {
       const ctx = gsap.context(() => {
-        gsap.fromTo(".contact-title", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out", delay: 0.2 });
-        gsap.fromTo(".contact-form", { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out", delay: 0.4 });
-        gsap.fromTo(".contact-info", { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out", delay: 0.5 });
+        // Form slides up with clip-path reveal
+        gsap.fromTo(
+          ".contact-form",
+          { y: 60, opacity: 0, clipPath: "inset(100% 0 0 0)" },
+          { y: 0, opacity: 1, clipPath: "inset(0% 0 0 0)", duration: 0.9, ease: "power3.out", delay: 0.4 }
+        );
+
+        // Social links stagger with bounce
+        gsap.fromTo(
+          ".social-link",
+          { x: 40, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.5, ease: "back.out(1.7)", stagger: 0.1, delay: 0.6 }
+        );
       }, ref);
       return () => ctx.revert();
     });
@@ -19,7 +31,6 @@ const Contact = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Backend integration ready
     console.log("Form submitted:", formData);
   };
 
@@ -27,10 +38,15 @@ const Contact = () => {
     <Layout>
       <div ref={ref} className="px-6 md:px-0">
         <section className="container max-w-3xl pt-12 md:pt-16">
-          <div className="contact-title opacity-0 mb-12">
-            <h1 className="text-3xl md:text-5xl font-bold font-display mb-4">
-              Get in <span className="gradient-text">Touch</span>
-            </h1>
+          <div className="mb-12">
+            <TextReveal
+              as="h1"
+              className="text-3xl md:text-5xl font-bold font-display mb-4"
+              delay={0.1}
+              stagger={0.08}
+            >
+              Get in Touch
+            </TextReveal>
             <p className="text-muted-foreground text-lg">
               Have a project in mind? Let's build something amazing together.
             </p>
@@ -68,16 +84,18 @@ const Contact = () => {
                   placeholder="Tell me about your project..."
                 />
               </div>
-              <button
-                type="submit"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity"
-              >
-                <Send className="w-4 h-4" />
-                Send Message
-              </button>
+              <MagneticButton strength={0.2}>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity"
+                >
+                  <Send className="w-4 h-4" />
+                  Send Message
+                </button>
+              </MagneticButton>
             </form>
 
-            <div className="contact-info opacity-0 md:col-span-2 space-y-6">
+            <div className="md:col-span-2 space-y-6">
               <div>
                 <h3 className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-4">// Connect</h3>
                 <div className="space-y-3">
@@ -90,7 +108,7 @@ const Contact = () => {
                     <a
                       key={item.label}
                       href={item.href}
-                      className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                      className="social-link opacity-0 flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors group"
                     >
                       <item.icon className="w-4 h-4 group-hover:text-primary transition-colors" />
                       {item.label}

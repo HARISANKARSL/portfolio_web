@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
+import TextReveal from "@/components/TextReveal";
 
 const skillCategories = [
   {
@@ -42,20 +43,64 @@ const Skills = () => {
       import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
         gsap.registerPlugin(ScrollTrigger);
         const ctx = gsap.context(() => {
-          gsap.fromTo(".skills-title", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out", delay: 0.2 });
-
+          // Skill categories slide in from alternating sides
           gsap.utils.toArray<HTMLElement>(".skill-category").forEach((cat, i) => {
-            gsap.fromTo(cat, { y: 50, opacity: 0 }, {
-              y: 0, opacity: 1, duration: 0.7, delay: i * 0.15,
-              scrollTrigger: { trigger: cat, start: "top 85%" },
-            });
+            gsap.fromTo(
+              cat,
+              { x: i % 2 === 0 ? -80 : 80, opacity: 0 },
+              {
+                x: 0,
+                opacity: 1,
+                duration: 0.8,
+                ease: "power3.out",
+                scrollTrigger: { trigger: cat, start: "top 85%" },
+              }
+            );
           });
 
+          // Skill bars with elastic ease
           gsap.utils.toArray<HTMLElement>(".skill-bar-fill").forEach((bar) => {
             const width = bar.getAttribute("data-level") || "0";
-            gsap.fromTo(bar, { width: "0%" }, {
-              width: `${width}%`, duration: 1, ease: "power3.out",
-              scrollTrigger: { trigger: bar, start: "top 90%" },
+            gsap.fromTo(
+              bar,
+              { width: "0%", opacity: 0 },
+              {
+                width: `${width}%`,
+                opacity: 1,
+                duration: 1.2,
+                ease: "power3.out",
+                scrollTrigger: { trigger: bar, start: "top 90%" },
+              }
+            );
+          });
+
+          // Skill labels stagger
+          gsap.utils.toArray<HTMLElement>(".skill-label").forEach((label, i) => {
+            gsap.fromTo(
+              label,
+              { x: -20, opacity: 0 },
+              {
+                x: 0,
+                opacity: 1,
+                duration: 0.4,
+                delay: (i % 5) * 0.08,
+                scrollTrigger: { trigger: label, start: "top 92%" },
+              }
+            );
+          });
+
+          // Percentage counters
+          gsap.utils.toArray<HTMLElement>(".skill-percent").forEach((el) => {
+            const target = parseInt(el.getAttribute("data-level") || "0", 10);
+            const obj = { val: 0 };
+            gsap.to(obj, {
+              val: target,
+              duration: 1.5,
+              ease: "power2.out",
+              scrollTrigger: { trigger: el, start: "top 92%" },
+              onUpdate: () => {
+                el.textContent = `${Math.floor(obj.val)}%`;
+              },
             });
           });
         }, ref);
@@ -68,10 +113,15 @@ const Skills = () => {
     <Layout>
       <div ref={ref} className="px-6 md:px-0">
         <section className="container max-w-3xl pt-12 md:pt-16">
-          <div className="skills-title opacity-0 mb-12">
-            <h1 className="text-3xl md:text-5xl font-bold font-display mb-4">
-              My <span className="gradient-text">Skills</span>
-            </h1>
+          <div className="mb-12">
+            <TextReveal
+              as="h1"
+              className="text-3xl md:text-5xl font-bold font-display mb-4"
+              delay={0.1}
+              stagger={0.08}
+            >
+              My Skills
+            </TextReveal>
             <p className="text-muted-foreground text-lg">
               Technologies and tools I work with daily to build amazing products.
             </p>
@@ -87,8 +137,10 @@ const Skills = () => {
                   {category.skills.map((skill) => (
                     <div key={skill.name}>
                       <div className="flex justify-between mb-1.5">
-                        <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                        <span className="text-xs font-mono text-muted-foreground">{skill.level}%</span>
+                        <span className="skill-label text-sm font-medium text-foreground">{skill.name}</span>
+                        <span className="skill-percent text-xs font-mono text-muted-foreground" data-level={skill.level}>
+                          0%
+                        </span>
                       </div>
                       <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
