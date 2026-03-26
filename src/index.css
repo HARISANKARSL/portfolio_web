@@ -152,6 +152,6 @@
   }
 
   .heatmap-cell {
-    @apply rounded-sm transition-colors duration-200;
+    @apply  transition-colors duration-200;
   }
 }

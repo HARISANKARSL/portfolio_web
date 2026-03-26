@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 import Layout from "@/components/Layout";
 import StatCard from "@/components/StatCard";
@@ -7,11 +7,102 @@ import CodeStats from "@/components/CodeStats";
 import TextReveal from "@/components/TextReveal";
 import MagneticButton from "@/components/MagneticButton";
 import { FolderKanban, Users, DollarSign, Code, Star, GitBranch, Sun, Moon } from "lucide-react";
-
+interface HeatmapCell {
+  date: string;
+  count: number;
+}
 const Index = () => {
   const heroRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
 
+const [githubData, setGithubData] = useState<HeatmapCell[]>([]);
+const [leetcodeData, setLeetcodeData] = useState<HeatmapCell[]>([]);
+const fetchGitHubData = async () => {
+  const res = await fetch("https://api.github.com/graphql", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${import.meta.env.VITE_GITHUB_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query: `
+        query {
+          user(login: "HARISANKARSL") {
+            contributionsCollection {
+              contributionCalendar {
+                weeks {
+                  contributionDays {
+                    date
+                    contributionCount
+                  }
+                }
+              }
+            }
+          }
+        }
+      `,
+    }),
+  });
+
+  const json = await res.json();
+
+  const weeks =
+    json.data.user.contributionsCollection.contributionCalendar.weeks;
+
+  // ✅ FINAL DATA FORMAT (correct)
+  const formattedData = weeks.flatMap((week: any) =>
+    week.contributionDays.map((day: any) => ({
+      date: day.date,
+      count: day.contributionCount,
+    }))
+  ).slice(-26 * 7); // last 14 weeks
+
+  setGithubData(formattedData);
+};
+
+const fetchLeetCodeData = async () => {
+  const cached = localStorage.getItem("leetcode_heatmap");
+
+  if (cached) {
+    setLeetcodeData(JSON.parse(cached));
+    return;
+  }
+
+  const res = await fetch(
+    "https://alfa-leetcode-api.onrender.com/5HLBLRxRzq/calendar"
+  );
+
+  const json = await res.json();
+  const parsed = JSON.parse(json.submissionCalendar);
+
+  const today = new Date();
+  const start = new Date();
+  start.setDate(today.getDate() - 26 * 7);
+
+  const result = [];
+
+  for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+    const timestamp = Math.floor(d.getTime() / 1000);
+
+    result.push({
+      date: d.toISOString().split("T")[0],
+      count: parsed[timestamp] || 0,
+    });
+  }
+
+  localStorage.setItem("leetcode_heatmap", JSON.stringify(result)); // 🔥 cache
+  setLeetcodeData(result);
+};
+
+
+useEffect(() => {
+  fetchGitHubData();
+
+}, []);
+useEffect(() => {
+
+  fetchLeetCodeData();
+}, []);
   useEffect(() => {
     import("gsap").then(({ default: gsap }) => {
       import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
@@ -250,11 +341,13 @@ const Index = () => {
                   title="GitHub Contributions" 
                   weeks={14}
                   subtitle="14 weeks of activity"
+                  data={githubData}
                 />
                 <HeatmapGrid 
                   title="LeetCode Activity" 
                   weeks={14}
                   subtitle="14 weeks of problems solved"
+                  data={leetcodeData}
                 />
               {/* </div> */}
               {/* Right: Code Stats */}
@@ -329,3 +422,5 @@ const Index = () => {
 };
 
 export default Index;
+
+
