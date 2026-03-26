@@ -4,9 +4,10 @@ interface HeatmapGridProps {
   title: string;
   data?: number[];
   weeks?: number;
+  subtitle?: string;
 }
 
-const HeatmapGrid = ({ title, data, weeks = 20 }: HeatmapGridProps) => {
+const HeatmapGrid = ({ title, data, weeks = 20,subtitle }: HeatmapGridProps) => {
   const cells = useMemo(() => {
     if (data) return data;
     // Generate mock data

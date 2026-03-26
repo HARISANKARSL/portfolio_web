@@ -1,39 +1,65 @@
 import { useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import TextReveal from "@/components/TextReveal";
+import { Code2, Server, Cloud, GitBranch, Database } from "lucide-react";
+import React from "react";
 
-const skillCategories = [
-  {
-    title: "Frontend",
-    skills: [
-      { name: "React", level: 95 },
-      { name: "TypeScript", level: 90 },
-      { name: "Next.js", level: 85 },
-      { name: "Tailwind CSS", level: 95 },
-      { name: "GSAP", level: 80 },
-    ],
+const skills = [
+  { 
+    icon: <Code2 className="w-8 h-8" />,
+    name: "React",
+    category: "UI Framework",
+    percentage: 92
   },
-  {
-    title: "Backend",
-    skills: [
-      { name: "Node.js", level: 90 },
-      { name: "Express", level: 85 },
-      { name: "PostgreSQL", level: 80 },
-      { name: "MongoDB", level: 75 },
-      { name: "GraphQL", level: 70 },
-    ],
+  { 
+    icon: <Code2 className="w-8 h-8" />,
+    name: "TypeScript",
+    category: "Type System",
+    percentage: 88
   },
-  {
-    title: "DevOps & Tools",
-    skills: [
-      { name: "Docker", level: 80 },
-      { name: "AWS", level: 75 },
-      { name: "Git", level: 95 },
-      { name: "CI/CD", level: 80 },
-      { name: "Linux", level: 85 },
-    ],
+  { 
+    icon: <Server className="w-8 h-8" />,
+    name: "Node.js",
+    category: "Runtime Environment",
+    percentage: 85
+  },
+  { 
+    icon: <Cloud className="w-8 h-8" />,
+    name: "Cloud Infra",
+    category: "AWS/GCP",
+    percentage: 79
+  },
+  { 
+    icon: <Database className="w-8 h-8" />,
+    name: "PostgreSQL",
+    category: "Database",
+    percentage: 82
+  },
+  { 
+    icon: <GitBranch className="w-8 h-8" />,
+    name: "Git",
+    category: "Version Control",
+    percentage: 95
+  },
+  { 
+    icon: <GitBranch className="w-8 h-8" />,
+    name: "Next.js",
+    category: "Framework",
+    percentage: 87
+  },
+  { 
+    icon: <Code2 className="w-8 h-8" />,
+    name: "Docker",
+    category: "Containerization",
+    percentage: 80
   },
 ];
+
+const gradientColor = (percentage: number): string => {
+  if (percentage >= 90) return "from-cyan-400 to-cyan-500";
+  if (percentage >= 80) return "from-purple-400 to-purple-500";
+  return "from-blue-400 to-blue-500";
+};
 
 const Skills = () => {
   const ref = useRef<HTMLDivElement>(null);
@@ -43,65 +69,55 @@ const Skills = () => {
       import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
         gsap.registerPlugin(ScrollTrigger);
         const ctx = gsap.context(() => {
-          // Skill categories slide in from alternating sides
-          gsap.utils.toArray<HTMLElement>(".skill-category").forEach((cat, i) => {
+          // Title animation
+          gsap.fromTo(
+            ".skills-title",
+            { x: -40, opacity: 0 },
+            {
+              x: 0,
+              opacity: 1,
+              duration: 0.8,
+              ease: "power3.out",
+              delay: 0.2,
+              scrollTrigger: { trigger: ".skills-title", start: "top 85%" },
+            }
+          );
+
+          // Skill cards staggered entrance with subtle scale
+          gsap.utils.toArray<HTMLElement>(".skill-card").forEach((card, i) => {
             gsap.fromTo(
-              cat,
-              { x: i % 2 === 0 ? -80 : 80, opacity: 0 },
+              card,
+              { 
+                y: 50, 
+                opacity: 0, 
+                scale: 0.9
+              },
               {
-                x: 0,
+                y: 0,
                 opacity: 1,
-                duration: 0.8,
-                ease: "power3.out",
-                scrollTrigger: { trigger: cat, start: "top 85%" },
+                scale: 1,
+                duration: 0.7,
+                ease: "back.out(1.5)",
+                delay: i * 0.08,
+                scrollTrigger: { trigger: card, start: "top 88%" },
               }
             );
           });
 
-          // Skill bars with elastic ease
-          gsap.utils.toArray<HTMLElement>(".skill-bar-fill").forEach((bar) => {
-            const width = bar.getAttribute("data-level") || "0";
+          // Progress bar fill animation
+          gsap.utils.toArray<HTMLElement>(".progress-bar-fill").forEach((bar) => {
+            const percentage = bar.getAttribute("data-percentage") || "0";
             gsap.fromTo(
               bar,
               { width: "0%", opacity: 0 },
               {
-                width: `${width}%`,
+                width: `${percentage}%`,
                 opacity: 1,
-                duration: 1.2,
+                duration: 1.5,
                 ease: "power3.out",
                 scrollTrigger: { trigger: bar, start: "top 90%" },
               }
             );
-          });
-
-          // Skill labels stagger
-          gsap.utils.toArray<HTMLElement>(".skill-label").forEach((label, i) => {
-            gsap.fromTo(
-              label,
-              { x: -20, opacity: 0 },
-              {
-                x: 0,
-                opacity: 1,
-                duration: 0.4,
-                delay: (i % 5) * 0.08,
-                scrollTrigger: { trigger: label, start: "top 92%" },
-              }
-            );
-          });
-
-          // Percentage counters
-          gsap.utils.toArray<HTMLElement>(".skill-percent").forEach((el) => {
-            const target = parseInt(el.getAttribute("data-level") || "0", 10);
-            const obj = { val: 0 };
-            gsap.to(obj, {
-              val: target,
-              duration: 1.5,
-              ease: "power2.out",
-              scrollTrigger: { trigger: el, start: "top 92%" },
-              onUpdate: () => {
-                el.textContent = `${Math.floor(obj.val)}%`;
-              },
-            });
           });
         }, ref);
         return () => ctx.revert();
@@ -112,48 +128,169 @@ const Skills = () => {
   return (
     <Layout>
       <div ref={ref} className="px-6 md:px-0">
-        <section className="container max-w-3xl pt-12 md:pt-16">
-          <div className="mb-12">
+        <section className="container max-w-5xl pt-12 md:pt-16 pb-20">
+          {/* Header */}
+          <div className="mb-16 skills-title">
             <TextReveal
               as="h1"
-              className="text-3xl md:text-5xl font-bold font-display mb-4"
+              className="text-4xl md:text-5xl font-bold font-display mb-4"
               delay={0.1}
               stagger={0.08}
             >
-              My Skills
+              Technical Skills
             </TextReveal>
-            <p className="text-muted-foreground text-lg">
-              Technologies and tools I work with daily to build amazing products.
+            <p className="text-muted-foreground text-base md:text-lg">
+              Core technologies and frameworks that power my development work.
             </p>
           </div>
 
-          <div className="space-y-10 mb-16">
-            {skillCategories.map((category) => (
-              <div key={category.title} className="skill-category opacity-0">
-                <h2 className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-5">
-                  // {category.title}
-                </h2>
-                <div className="space-y-4">
-                  {category.skills.map((skill) => (
-                    <div key={skill.name}>
-                      <div className="flex justify-between mb-1.5">
-                        <span className="skill-label text-sm font-medium text-foreground">{skill.name}</span>
-                        <span className="skill-percent text-xs font-mono text-muted-foreground" data-level={skill.level}>
-                          0%
-                        </span>
-                      </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="skill-bar-fill h-full bg-primary rounded-full"
-                          data-level={skill.level}
-                          style={{ width: "0%" }}
-                        />
+          {/* Technical Dashboard */}
+          <div className="mb-16">
+            <h2 className="text-xl font-mono text-muted-foreground uppercase tracking-widest mb-8 text-center">
+              Technical_Dashboard
+            </h2>
+            
+            {/* First Row - Skills 1-4 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {skills.slice(0, 4).map((skill, idx) => {
+                const iconBgColor = 
+                  skill.percentage >= 90 ? "bg-cyan-500/20 text-cyan-400" :
+                  skill.percentage >= 85 ? "bg-purple-500/20 text-purple-400" :
+                  skill.percentage >= 80 ? "bg-green-500/20 text-green-400" :
+                  "bg-blue-500/20 text-blue-400";
+                
+                const borderColor = 
+                  skill.percentage >= 90 ? "border-cyan-500/40 hover:border-cyan-500/70" :
+                  skill.percentage >= 85 ? "border-purple-500/40 hover:border-purple-500/70" :
+                  skill.percentage >= 80 ? "border-green-500/40 hover:border-green-500/70" :
+                  "border-blue-500/40 hover:border-blue-500/70";
+
+                return (
+                  <div key={idx} className="skill-card group">
+                    <div className={`relative h-full border ${borderColor} rounded-lg overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-900/80 backdrop-blur-sm transition-all duration-300 hover:shadow-xl p-6`}>
+                      {/* Circuit Board Pattern */}
+                      <svg className="absolute inset-0 w-full h-full opacity-[0.1] group-hover:opacity-[0.2] transition-opacity" viewBox="0 0 400 300">
+                        <defs>
+                          <pattern id={`circuit-${idx}`} x="0" y="0" width="50" height="50" patternUnits="userSpaceOnUse">
+                            <rect width="50" height="50" fill="none" stroke="currentColor" strokeWidth="1"/>
+                            <circle cx="5" cy="5" r="2" fill="currentColor"/>
+                            <circle cx="45" cy="45" r="2" fill="currentColor"/>
+                            <path d="M 10 5 L 40 5" stroke="currentColor" strokeWidth="0.5"/>
+                            <path d="M 45 10 L 45 40" stroke="currentColor" strokeWidth="0.5"/>
+                            <circle cx="25" cy="25" r="1.5" fill="currentColor" opacity="0.5"/>
+                          </pattern>
+                        </defs>
+                        <rect width="400" height="300" fill={`url(#circuit-${idx})`}/>
+                      </svg>
+
+                      {/* Content */}
+                      <div className="relative z-10 h-full flex flex-col justify-between space-y-5">
+                        <div className="space-y-4">
+                          <div className={`inline-flex p-3.5 ${iconBgColor} rounded-lg transition-all group-hover:scale-110`}>
+                            {React.cloneElement(skill.icon as React.ReactElement, { className: "w-6 h-6" })}
+                          </div>
+                          <h3 className="font-mono font-bold text-sm text-foreground uppercase tracking-wide">
+  {skill.name}{" "}
+  <span className="text-muted-foreground/60">{'>'}</span>{" "}
+  {skill.category}
+</h3>
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[0.65rem] font-mono text-muted-foreground/70 uppercase tracking-widest">Level</span>
+                            <span className="text-sm font-mono font-bold text-primary">{skill.percentage}%</span>
+                          </div>
+                          <div className="h-4 bg-slate-800 rounded-sm overflow-hidden border border-slate-700/50">
+                            <div
+                              className={`h-full rounded-sm bg-gradient-to-r ${gradientColor(skill.percentage)} progress-bar-fill`}
+                              data-percentage={skill.percentage}
+                              style={{ width: "0%" }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Second Row - Skills 5-8 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {skills.slice(4, 8).map((skill, idx) => {
+                const iconBgColor = 
+                  skill.percentage >= 90 ? "bg-cyan-500/20 text-cyan-400" :
+                  skill.percentage >= 85 ? "bg-purple-500/20 text-purple-400" :
+                  skill.percentage >= 82 ? "bg-green-500/20 text-green-400" :
+                  "bg-blue-500/20 text-blue-400";
+                
+                const borderColor = 
+                  skill.percentage >= 90 ? "border-cyan-500/40 hover:border-cyan-500/70" :
+                  skill.percentage >= 85 ? "border-purple-500/40 hover:border-purple-500/70" :
+                  skill.percentage >= 82 ? "border-green-500/40 hover:border-green-500/70" :
+                  "border-blue-500/40 hover:border-blue-500/70";
+
+                return (
+                  <div key={idx + 4} className="skill-card group">
+                    <div className={`relative h-full border ${borderColor} rounded-lg overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-900/80 backdrop-blur-sm transition-all duration-300 hover:shadow-xl p-6`}>
+                      {/* Circuit Board Pattern */}
+                      <svg className="absolute inset-0 w-full h-full opacity-[0.1] group-hover:opacity-[0.2] transition-opacity" viewBox="0 0 400 300">
+                        <defs>
+                          <pattern id={`circuit-${idx + 4}`} x="0" y="0" width="50" height="50" patternUnits="userSpaceOnUse">
+                            <rect width="50" height="50" fill="none" stroke="currentColor" strokeWidth="1"/>
+                            <circle cx="5" cy="5" r="2" fill="currentColor"/>
+                            <circle cx="45" cy="45" r="2" fill="currentColor"/>
+                            <path d="M 10 5 L 40 5" stroke="currentColor" strokeWidth="0.5"/>
+                            <path d="M 45 10 L 45 40" stroke="currentColor" strokeWidth="0.5"/>
+                            <circle cx="25" cy="25" r="1.5" fill="currentColor" opacity="0.5"/>
+                          </pattern>
+                        </defs>
+                        <rect width="400" height="300" fill={`url(#circuit-${idx + 4})`}/>
+                      </svg>
+
+                      {/* Content */}
+                      <div className="relative z-10 h-full flex flex-col justify-between space-y-5">
+                        <div className="space-y-4">
+                          <div className={`inline-flex p-3.5 ${iconBgColor} rounded-lg transition-all group-hover:scale-110`}>
+                            {React.cloneElement(skill.icon as React.ReactElement, { className: "w-6 h-6" })}
+                          </div>
+                          <h3 className="font-mono font-bold text-sm text-foreground uppercase tracking-wide">
+                            {skill.name} <span className="text-muted-foreground/60">{'>'}</span> {skill.category}
+                          </h3>
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[0.65rem] font-mono text-muted-foreground/70 uppercase tracking-widest">Level</span>
+                            <span className="text-sm font-mono font-bold text-primary">{skill.percentage}%</span>
+                          </div>
+                          <div className="h-4 bg-slate-800 rounded-sm overflow-hidden border border-slate-700/50">
+                            <div
+                              className={`h-full rounded-sm bg-gradient-to-r ${gradientColor(skill.percentage)} progress-bar-fill`}
+                              data-percentage={skill.percentage}
+                              style={{ width: "0%" }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bottom CTA */}
+          <div className="border-t border-border/50 pt-12 text-center">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Ready to collaborate?</h3>
+            <p className="text-muted-foreground text-sm mb-6">Let's build something exceptional together</p>
+            <a 
+              href="/contact"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors"
+            >
+              Get in Touch
+            </a>
           </div>
         </section>
       </div>

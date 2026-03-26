@@ -3,6 +3,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import Layout from "@/components/Layout";
 import StatCard from "@/components/StatCard";
 import HeatmapGrid from "@/components/HeatmapGrid";
+import CodeStats from "@/components/CodeStats";
 import TextReveal from "@/components/TextReveal";
 import MagneticButton from "@/components/MagneticButton";
 import { FolderKanban, Users, DollarSign, Code, Star, GitBranch, Sun, Moon } from "lucide-react";
@@ -233,18 +234,38 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Heatmaps */}
+        {/* Unified Analytics Homepage */}
         <section className="scroll-section opacity-0 px-6 md:px-0 mb-16">
           <div className="container">
-            <h2 className="section-header text-xs font-mono text-muted-foreground uppercase tracking-widest mb-6">
-              // Activity
-            </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <HeatmapGrid title="GitHub Contributions" weeks={20} />
-              <HeatmapGrid title="LeetCode Activity" weeks={20} />
+            <div className="mb-8">
+              <h2 className="section-header text-xs font-mono text-muted-foreground uppercase tracking-widest mb-2">
+                // Unified Analytics
+              </h2>
+              <p className="text-sm text-muted-foreground">Heatmap insights & real-time coding metrics</p>
+            </div>
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Left: Heatmaps */}
+              {/* <div className="lg:col-span-1 space-y-4"> */}
+                <HeatmapGrid 
+                  title="GitHub Contributions" 
+                  weeks={14}
+                  subtitle="14 weeks of activity"
+                />
+                <HeatmapGrid 
+                  title="LeetCode Activity" 
+                  weeks={14}
+                  subtitle="14 weeks of problems solved"
+                />
+              {/* </div> */}
+              {/* Right: Code Stats */}
+              <div className="lg:col-span-2">
+                <CodeStats />
+              </div>
             </div>
           </div>
         </section>
+
+   
 
         {/* Tech Stack */}
         <section className="scroll-section opacity-0 px-6 md:px-0 mb-16">
@@ -264,6 +285,7 @@ const Index = () => {
             </div>
           </div>
         </section>
+
 
         {/* Recent Projects */}
         <section className="scroll-section opacity-0 px-6 md:px-0 mb-16">

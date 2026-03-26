@@ -1,11 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, User, Wrench, FolderKanban, Mail } from "lucide-react";
+import { LayoutDashboard, User, Wrench, FolderKanban, BarChart3, Mail } from "lucide-react";
 
 const navItems = [
   { path: "/", label: "Home", icon: LayoutDashboard },
   { path: "/about", label: "About", icon: User },
   { path: "/skills", label: "Skills", icon: Wrench },
   { path: "/projects", label: "Projects", icon: FolderKanban },
+  { path: "/analytics", label: "Analytics", icon: BarChart3 },
   { path: "/contact", label: "Contact", icon: Mail },
 ];
 
