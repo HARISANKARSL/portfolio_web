@@ -2,7 +2,7 @@ import apiInstance from "./apiInstance";
 import { AxiosRequestConfig, AxiosResponse } from "axios";
 
 // ==============================
-// 🔹 GENERIC REQUEST FUNCTION
+// GENERIC REQUEST
 // ==============================
 export const request = async <T = any>(
   config: AxiosRequestConfig
@@ -12,9 +12,8 @@ export const request = async <T = any>(
 };
 
 // ==============================
-// 🔹 METHODS
+// METHODS
 // ==============================
-
 export const get = <T = any>(
   url: string,
   config?: AxiosRequestConfig
@@ -43,11 +42,9 @@ export const remove = <T = any>(
   config?: AxiosRequestConfig
 ): Promise<T> => request<T>({ method: "DELETE", url, ...config });
 
-
 // ==============================
-// 🔹 BLOB / DOWNLOAD
+// FILE APIs
 // ==============================
-
 export const postBlob = async (
   url: string,
   data?: any
@@ -62,9 +59,7 @@ export const getBlob = async (url: string): Promise<Blob> => {
   return res.data;
 };
 
-export const downloadFile = async (
-  url: string
-): Promise<{ blob: Blob; headers: any }> => {
+export const downloadFile = async (url: string) => {
   const res = await apiInstance.get(url, { responseType: "blob" });
 
   return {

@@ -11,53 +11,167 @@ interface HeatmapCell {
   date: string;
   count: number;
 }
+interface GitHubStats {
+  repos: {
+    total: number;
+    public: number;
+    private: number;
+  };
+  stars: number;
+  commits: {
+    total: number;
+    public: number;
+    private: number;
+  };
+}
 const Index = () => {
   const heroRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
 
 const [githubData, setGithubData] = useState<HeatmapCell[]>([]);
 const [leetcodeData, setLeetcodeData] = useState<HeatmapCell[]>([]);
+const [gitStats, setGitStats] = useState<GitHubStats | null>(null);
+console.log("get",gitStats)
+// ✅ FIX TYPE
+interface GitHubStats {
+  repos: {
+    total: number;
+    public: number;
+    private: number;
+  };
+  stars: number;
+  commits: {
+    total: number;
+    public: number;
+    private: number;
+  };
+}
+
+
+
 const fetchGitHubData = async () => {
-  const res = await fetch("https://api.github.com/graphql", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${import.meta.env.VITE_GITHUB_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query: `
-        query {
-          user(login: "HARISANKARSL") {
-            contributionsCollection {
-              contributionCalendar {
-                weeks {
-                  contributionDays {
-                    date
-                    contributionCount
+  try {
+    const res = await fetch("https://api.github.com/graphql", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${import.meta.env.VITE_GITHUB_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: `
+          query {
+            user(login: "HARISANKARSL") {
+
+              # ✅ TOTAL REPOS (correct)
+              repositories {
+                totalCount
+              }
+
+              publicRepos: repositories(privacy: PUBLIC) {
+                totalCount
+              }
+
+              privateRepos: repositories(privacy: PRIVATE) {
+                totalCount
+              }
+
+              # ✅ STARS
+              allRepos: repositories(first: 100, ownerAffiliations: OWNER) {
+                nodes {
+                  stargazerCount
+                }
+              }
+
+              # ✅ COMMITS
+              contributionsCollection {
+                totalCommitContributions
+                restrictedContributionsCount
+
+                contributionCalendar {
+                  weeks {
+                    contributionDays {
+                      date
+                      contributionCount
+                    }
                   }
                 }
               }
             }
           }
-        }
-      `,
-    }),
-  });
+        `,
+      }),
+    });
 
-  const json = await res.json();
+    const json = await res.json();
+    const user = json?.data?.user;
 
-  const weeks =
-    json.data.user.contributionsCollection.contributionCalendar.weeks;
+    // =========================
+    // ✅ REPOS (FIXED)
+    // =========================
+    const totalRepos = user?.repositories?.totalCount || 0;
+    const publicRepos = user?.publicRepos?.totalCount || 0;
+    const privateRepos = user?.privateRepos?.totalCount || 0;
 
-  // ✅ FINAL DATA FORMAT (correct)
-  const formattedData = weeks.flatMap((week: any) =>
-    week.contributionDays.map((day: any) => ({
-      date: day.date,
-      count: day.contributionCount,
-    }))
-  ).slice(-26 * 7); // last 14 weeks
+    // =========================
+    // ✅ STARS
+    // =========================
+    const totalStars =
+      user?.allRepos?.nodes?.reduce(
+        (acc: number, repo: any) => acc + repo.stargazerCount,
+        0
+      ) || 0;
 
-  setGithubData(formattedData);
+    // =========================
+    // ✅ COMMITS (last year)
+    // =========================
+    const totalCommits =
+      user?.contributionsCollection?.totalCommitContributions || 0;
+
+    const privateCommits =
+      user?.contributionsCollection?.restrictedContributionsCount || 0;
+
+    const publicCommits = totalCommits - privateCommits;
+
+    // =========================
+    // ✅ HEATMAP
+    // =========================
+    const weeks =
+      user?.contributionsCollection?.contributionCalendar?.weeks || [];
+
+    const heatmapData = weeks
+      .flatMap((week: any) =>
+        week.contributionDays.map((day: any) => ({
+          date: day.date,
+          count: day.contributionCount,
+        }))
+      )
+      .slice(-26 * 7);
+
+    // =========================
+    // ✅ FINAL OBJECT (FIXED TYPE)
+    // =========================
+    const stats: GitHubStats = {
+      repos: {
+        total: totalRepos,
+        public: publicRepos,
+        private: privateRepos,
+      },
+      stars: totalStars,
+      commits: {
+        total: totalCommits,
+        public: publicCommits,
+        private: privateCommits,
+      },
+    };
+
+    // ✅ SET STATE
+    setGitStats(stats);
+    setGithubData(heatmapData);
+
+    console.log("GitHub Stats:", stats);
+  } catch (error) {
+    console.error("GitHub Fetch Error:", error);
+  }
 };
 
 const fetchLeetCodeData = async () => {
