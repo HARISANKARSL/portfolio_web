@@ -1,4 +1,5 @@
 import { ReactNode, useEffect, useRef } from "react";
+import CountUp from "./CountUp";
 
 interface StatCardProps {
   icon: ReactNode;
@@ -28,7 +29,7 @@ const StatCard = ({ icon, value, label, delay = 0 }: StatCardProps) => {
       <div className="flex items-center gap-3 mb-3">
         <div className="p-2 rounded-lg bg-primary/10 text-primary">{icon}</div>
       </div>
-      <p className="text-2xl font-bold font-mono text-foreground">{value}</p>
+      <CountUp value={value} className="text-2xl font-bold font-mono text-foreground" />
       <p className="text-sm text-muted-foreground mt-1">{label}</p>
     </div>
   );
