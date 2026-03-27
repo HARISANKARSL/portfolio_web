@@ -6,7 +6,7 @@ import HeatmapGrid from "@/components/HeatmapGrid";
 import CodeStats from "@/components/CodeStats";
 import TextReveal from "@/components/TextReveal";
 import MagneticButton from "@/components/MagneticButton";
-import { FolderKanban, Users, DollarSign, Code, Star, GitBranch, Sun, Moon } from "lucide-react";
+import { FolderKanban, Users, DollarSign, Code, Star, GitBranch, Sun, Moon, Code2, GitCommit } from "lucide-react";
 interface HeatmapCell {
   date: string;
   count: number;
@@ -31,8 +31,7 @@ const Index = () => {
 const [githubData, setGithubData] = useState<HeatmapCell[]>([]);
 const [leetcodeData, setLeetcodeData] = useState<HeatmapCell[]>([]);
 const [gitStats, setGitStats] = useState<GitHubStats | null>(null);
-console.log("get",gitStats)
-// ✅ FIX TYPE
+
 interface GitHubStats {
   repos: {
     total: number;
@@ -62,7 +61,7 @@ const fetchGitHubData = async () => {
           query {
             user(login: "HARISANKARSL") {
 
-              # ✅ TOTAL REPOS (correct)
+           
               repositories {
                 totalCount
               }
@@ -75,14 +74,14 @@ const fetchGitHubData = async () => {
                 totalCount
               }
 
-              # ✅ STARS
+          
               allRepos: repositories(first: 100, ownerAffiliations: OWNER) {
                 nodes {
                   stargazerCount
                 }
               }
 
-              # ✅ COMMITS
+             
               contributionsCollection {
                 totalCommitContributions
                 restrictedContributionsCount
@@ -105,36 +104,26 @@ const fetchGitHubData = async () => {
     const json = await res.json();
     const user = json?.data?.user;
 
-    // =========================
-    // ✅ REPOS (FIXED)
-    // =========================
+    
     const totalRepos = user?.repositories?.totalCount || 0;
     const publicRepos = user?.publicRepos?.totalCount || 0;
     const privateRepos = user?.privateRepos?.totalCount || 0;
 
-    // =========================
-    // ✅ STARS
-    // =========================
+  
     const totalStars =
       user?.allRepos?.nodes?.reduce(
         (acc: number, repo: any) => acc + repo.stargazerCount,
         0
       ) || 0;
 
-    // =========================
-    // ✅ COMMITS (last year)
-    // =========================
-    const totalCommits =
-      user?.contributionsCollection?.totalCommitContributions || 0;
+   
+const publicCommits =
+  user?.contributionsCollection?.totalCommitContributions || 0;
 
-    const privateCommits =
-      user?.contributionsCollection?.restrictedContributionsCount || 0;
+const privateCommits =
+  user?.contributionsCollection?.restrictedContributionsCount || 0;
 
-    const publicCommits = totalCommits - privateCommits;
-
-    // =========================
-    // ✅ HEATMAP
-    // =========================
+const totalCommits = publicCommits + privateCommits; // ✅ FIX
     const weeks =
       user?.contributionsCollection?.contributionCalendar?.weeks || [];
 
@@ -147,24 +136,22 @@ const fetchGitHubData = async () => {
       )
       .slice(-26 * 7);
 
-    // =========================
-    // ✅ FINAL OBJECT (FIXED TYPE)
-    // =========================
-    const stats: GitHubStats = {
-      repos: {
-        total: totalRepos,
-        public: publicRepos,
-        private: privateRepos,
-      },
-      stars: totalStars,
-      commits: {
-        total: totalCommits,
-        public: publicCommits,
-        private: privateCommits,
-      },
-    };
+  
+  const stats: GitHubStats = {
+  repos: {
+    total: totalRepos,
+    public: publicRepos,
+    private: privateRepos,
+  },
+  stars: totalStars,
+  commits: {
+    total: publicCommits + privateCommits, // ✅ FIXED
+    public: publicCommits,
+    private: privateCommits,
+  },
+};
 
-    // ✅ SET STATE
+  
     setGitStats(stats);
     setGithubData(heatmapData);
 
@@ -217,6 +204,61 @@ useEffect(() => {
 
   fetchLeetCodeData();
 }, []);
+
+
+
+
+
+const maxValue = Math.max(
+  gitStats?.stars || 0,
+  gitStats?.repos?.total || 0,
+  gitStats?.commits?.total || 0
+);
+
+const githubStatsConfig = [
+  {
+    label: "Stars",
+    value: gitStats?.stars || 0,
+    icon: <Star className="w-4 h-4 text-cyan-400" />,
+    progress: (gitStats?.stars / maxValue) * 100,
+  },
+  {
+    label: "Repos",
+    value: gitStats?.repos?.total || 0,
+    icon: <GitBranch className="w-4 h-4 text-cyan-400" />,
+    progress: (gitStats?.repos?.total / maxValue) * 100,
+  },
+  {
+    label: "Commits",
+    value: gitStats?.commits?.total || 0,
+    icon: <GitCommit className="w-4 h-4 text-cyan-400" />,
+    progress: (gitStats?.commits?.total / maxValue) * 100,
+  },
+];
+const leetCodeStatsConfig = [
+  {
+    label: "Stars",
+    value: gitStats?.stars || 0,
+    icon: <Star className="w-4 h-4 text-cyan-400" />,
+    progress: (gitStats?.stars / maxValue) * 100,
+  },
+  {
+    label: "Repos",
+    value: gitStats?.repos?.total || 0,
+    icon: <GitBranch className="w-4 h-4 text-cyan-400" />,
+    progress: (gitStats?.repos?.total / maxValue) * 100,
+  },
+  {
+    label: "Commits",
+    value: gitStats?.commits?.total || 0,
+    icon: <GitCommit className="w-4 h-4 text-cyan-400" />,
+    progress: (gitStats?.commits?.total / maxValue) * 100,
+  },
+];
+
+
+
+
   useEffect(() => {
     import("gsap").then(({ default: gsap }) => {
       import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
@@ -465,10 +507,20 @@ useEffect(() => {
                 />
               {/* </div> */}
               {/* Right: Code Stats */}
-              <div className="lg:col-span-2">
-                <CodeStats />
-              </div>
             </div>
+              <div className="grid md:grid-cols-2 gap-4 w-full mt-8">
+                    
+                <CodeStats
+  header="GitHub Protocol"
+  icon={<GitBranch className="w-4 h-4 text-cyan-400" />}
+  stats={githubStatsConfig}
+/>
+                <CodeStats
+  header="GitHub Protocol"
+  icon={<GitBranch className="w-4 h-4 text-cyan-400" />}
+  stats={leetCodeStatsConfig}
+/>
+              </div>
           </div>
         </section>
 
