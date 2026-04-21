@@ -5,10 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { authService } from "@/services/authService";
+import { authService } from "@/services/common/authService";
+import { useEffect } from "react";
+
 
 const Login = () => {
   const navigate = useNavigate();
+
+  // If already logged in, move to admin page automatically
+  useEffect(() => {
+    if (authService.isAuthenticated()) {
+      navigate("/admin/skills");
+    }
+  }, [navigate]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -19,16 +28,8 @@ const Login = () => {
     setIsLoading(true);
     setError("");
     try {
-      // For demo: if you have a real API, use it here
-      // const response = await authService.login({ email, password });
-      
-      // Demo: Create mock token and store in cookies
-      const mockToken = `token_${Date.now()}`;
-      const mockRefreshToken = `refresh_${Date.now()}`;
-      
-      authService.storeTokenData(mockToken, mockRefreshToken);
-      
-      // Redirect to admin dashboard after successful login
+      const response = await authService.login({ email, password });
+      console.log("Login response:", response);
       navigate("/admin/skills");
     } catch (err) {
       setError("Login failed. Please try again.");
@@ -82,9 +83,7 @@ const Login = () => {
               {isLoading ? "Logging in..." : "Login"}
             </Button>
             {error && <p className="text-sm text-red-500 text-center mt-2">{error}</p>}
-            <p className="text-xs text-gray-500 text-center mt-4">
-              Demo: Use any email/password to login
-            </p>
+            
           </form>
         </CardContent>
       </Card>

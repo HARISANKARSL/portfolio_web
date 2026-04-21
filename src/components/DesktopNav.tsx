@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { Sun, Moon, Terminal } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
-import { authService } from "@/services/authService";
+
 import { Button } from "@/components/ui/button";
+import { authService } from "@/services/common/authService";
 
 const navItems = [
   { path: "/", label: "Dashboard" },
@@ -17,7 +18,7 @@ const DesktopNav = () => {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const isAuthenticated = authService.isAuthenticated();
-
+console.log(" isAuthenticated:", isAuthenticated);
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border hidden md:block">
       <nav className="container flex items-center justify-between h-16">
@@ -51,7 +52,7 @@ const DesktopNav = () => {
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
-          {isAuthenticated ? (
+          {/* {isAuthenticated ? (
             <Link to="/admin/skills">
               <Button variant="default" size="sm" className="ml-2">
                 Admin Dashboard
@@ -63,7 +64,7 @@ const DesktopNav = () => {
                 Login
               </Button>
             </Link>
-          )}
+          )} */}
         </div>
       </nav>
     </header>

@@ -72,7 +72,7 @@ const CodeStats = ({
   return (
     <div ref={ref}>
       <div
-        className={`card opacity-0 bg-card border border-border/50 rounded-2xl p-6 backdrop-blur-sm transition-all duration-300 ${borderHover}`}
+       className={`card h-full flex flex-col opacity-0 bg-card border border-border/50 rounded-2xl p-6 backdrop-blur-sm transition-all duration-300 ${borderHover}`}
       >
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">
@@ -83,7 +83,7 @@ const CodeStats = ({
         </div>
 
         {/* Stats */}
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-y-auto pr-2">
   {stats.map((item, index) => (
     <div key={index} className="stat-value opacity-0 space-y-1">
       <p className="text-xs font-mono text-muted-foreground uppercase">

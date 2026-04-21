@@ -50,23 +50,19 @@ const months = useMemo(() => {
 
   return monthLabels;
 }, [cells]);
+const maxCount = useMemo(() => {
+  if (!cells || cells.length === 0) return 0;
+  return Math.max(...cells.map(c => c.count));
+}, [cells]);
 
- const getColor = (count: number) => {
-  const level =
-    count === 0 ? 0 :
-    count < 2 ? 1 :
-    count < 5 ? 2 :
-    count < 10 ? 3 : 4;
+const getColor = (count: number) => {
+  if (count === 0) return "bg-transparent border border-border"; // 👈 no fill
 
-  const colors = [
-    "bg-muted",
-    "bg-primary/20",
-    "bg-primary/40",
-    "bg-primary/60",
-    "bg-primary/80",
-  ];
+  if (count < 2) return "bg-[#0e4429]";
+  if (count < 5) return "bg-[#006d32]";
+  if (count < 10) return "bg-[#26a641]";
 
-  return colors[level];
+  return "bg-[#39d353]";
 };
 
   return (

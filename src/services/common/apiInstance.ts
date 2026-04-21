@@ -6,6 +6,7 @@ import axios, {
 } from "axios";
 import { authService } from "./authService";
 
+
 // ==============================
 // 🔔 TOAST (TEMP)
 // ==============================
@@ -16,7 +17,7 @@ const toastSuccess = (msg: string) => console.log("✅", msg);
 // CONFIG
 // ==============================
 export const baseURL: string =
-  import.meta.env.VITE_API_URL || "http://localhost:8000";
+  import.meta.env.VITE_API_URL || "https://portfolio-backend-1-bsic.onrender.com/api/";
 
 const apiInstance: AxiosInstance = axios.create({
   baseURL,
@@ -33,6 +34,7 @@ apiInstance.interceptors.request.use(
     // ✅ ONLY set if not already passed manually
     if (!config.headers?.Authorization && token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log("🔑 Auth header added:", `Bearer ${token.substring(0, 10)}...`);
     }
 
     if (!navigator.onLine) {
@@ -61,8 +63,13 @@ apiInstance.interceptors.response.use(
       const { status, data } = error.response;
 
       if (status === 401) {
-        toastError("Session expired");
-        authService.logout();
+        // Only redirect if there was a token (meaning the session actually expired)
+        // If there was no token, it was a guest request and we shouldn't force login
+        const hadToken = !!authService.getCurrentToken();
+        if (hadToken) {
+          toastError("Session expired");
+          authService.logout();
+        }
       } else if (status === 403) {
         toastError("No permission");
       } else {

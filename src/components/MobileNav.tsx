@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, User, Wrench, FolderKanban, BarChart3, Mail, LogIn } from "lucide-react";
-import { authService } from "@/services/authService";
+import { authService } from "@/services/common/authService";
+
 
 const navItems = [
   { path: "/", label: "Home", icon: LayoutDashboard },
@@ -38,7 +39,7 @@ const MobileNav = () => {
             </Link>
           );
         })}
-        <Link
+        {/* <Link
           to={isAuthenticated ? "/admin/skills" : "/login"}
           className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-[56px] ${
             location.pathname.startsWith("/admin") || location.pathname === "/login"
@@ -54,7 +55,7 @@ const MobileNav = () => {
           <span className="text-[10px] font-medium">
             {isAuthenticated ? "Admin" : "Login"}
           </span>
-        </Link>
+        </Link> */}
       </div>
     </nav>
   );

@@ -28,6 +28,8 @@ import {
 import { Card } from "@/components/ui/card";
 import { Trash2, Edit } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
+import { fetchTechStack } from "@/services/techstacks/techstack";
+import { useEffect } from "react";
 
 interface Skill {
   id: string;
@@ -37,20 +39,23 @@ interface Skill {
 }
 
 const SkillsAdmin = () => {
-  const [skills, setSkills] = useState<Skill[]>([
-    {
-      id: "1",
-      name: "React",
-      category: "Frontend",
-      proficiency: "Advanced",
-    },
-    {
-      id: "2",
-      name: "TypeScript",
-      category: "Language",
-      proficiency: "Advanced",
-    },
-  ]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSkills = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetchTechStack({ limit: 100 });
+        setSkills(res.data);
+      } catch (error) {
+        console.error("Failed to load skills:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadSkills();
+  }, []);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -222,7 +227,13 @@ const SkillsAdmin = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {skills.length > 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8">
+                    Loading skills...
+                  </TableCell>
+                </TableRow>
+              ) : skills.length > 0 ? (
                 skills.map((skill) => (
                   <TableRow key={skill.id}>
                     <TableCell className="font-medium">{skill.name}</TableCell>

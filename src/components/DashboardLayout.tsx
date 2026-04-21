@@ -3,7 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu, X, LogOut, BarChart3, Briefcase, Award, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
-import { authService } from "@/services/authService";
+import { authService } from "@/services/common/authService";
+
 
 const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const location = useLocation();

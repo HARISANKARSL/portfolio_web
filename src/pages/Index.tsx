@@ -6,7 +6,13 @@ import HeatmapGrid from "@/components/HeatmapGrid";
 import CodeStats from "@/components/CodeStats";
 import TextReveal from "@/components/TextReveal";
 import MagneticButton from "@/components/MagneticButton";
-import { FolderKanban, Users, DollarSign, Code, Star, GitBranch, Sun, Moon, Code2, GitCommit } from "lucide-react";
+import { FolderKanban, Users, DollarSign, Code, Star, GitBranch, Sun, Moon, Code2, GitCommit, LocateFixed, Target, Smile, TrendingUp, Flame } from "lucide-react";
+
+import { fetchGitHubStats } from "@/services/github/githubService";
+import TechStack from "@/components/TechStack";
+import { fetchLeetCodeStats } from "@/services/leetcode/leetcodeservice";
+import { fetchTechStack } from "@/services/techstacks/techstack";
+
 interface HeatmapCell {
   date: string;
   count: number;
@@ -31,7 +37,8 @@ const Index = () => {
 const [githubData, setGithubData] = useState<HeatmapCell[]>([]);
 const [leetcodeData, setLeetcodeData] = useState<HeatmapCell[]>([]);
 const [gitStats, setGitStats] = useState<GitHubStats | null>(null);
-
+const [leetCodeStats, setLeetCodeStats] = useState<any>(null);
+const [techs, setTechs] = useState<any[]>([]);
 interface GitHubStats {
   repos: {
     total: number;
@@ -48,164 +55,49 @@ interface GitHubStats {
 
 
 
-const fetchGitHubData = async () => {
-  try {
-    const res = await fetch("https://api.github.com/graphql", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${import.meta.env.VITE_GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `
-          query {
-            user(login: "HARISANKARSL") {
-
-           
-              repositories {
-                totalCount
-              }
-
-              publicRepos: repositories(privacy: PUBLIC) {
-                totalCount
-              }
-
-              privateRepos: repositories(privacy: PRIVATE) {
-                totalCount
-              }
-
-          
-              allRepos: repositories(first: 100, ownerAffiliations: OWNER) {
-                nodes {
-                  stargazerCount
-                }
-              }
-
-             
-              contributionsCollection {
-                totalCommitContributions
-                restrictedContributionsCount
-
-                contributionCalendar {
-                  weeks {
-                    contributionDays {
-                      date
-                      contributionCount
-                    }
-                  }
-                }
-              }
-            }
-          }
-        `,
-      }),
-    });
-
-    const json = await res.json();
-    const user = json?.data?.user;
-
-    
-    const totalRepos = user?.repositories?.totalCount || 0;
-    const publicRepos = user?.publicRepos?.totalCount || 0;
-    const privateRepos = user?.privateRepos?.totalCount || 0;
-
-  
-    const totalStars =
-      user?.allRepos?.nodes?.reduce(
-        (acc: number, repo: any) => acc + repo.stargazerCount,
-        0
-      ) || 0;
-
-   
-const publicCommits =
-  user?.contributionsCollection?.totalCommitContributions || 0;
-
-const privateCommits =
-  user?.contributionsCollection?.restrictedContributionsCount || 0;
-
-const totalCommits = publicCommits + privateCommits; // ✅ FIX
-    const weeks =
-      user?.contributionsCollection?.contributionCalendar?.weeks || [];
-
-    const heatmapData = weeks
-      .flatMap((week: any) =>
-        week.contributionDays.map((day: any) => ({
-          date: day.date,
-          count: day.contributionCount,
-        }))
-      )
-      .slice(-26 * 7);
-
-  
-  const stats: GitHubStats = {
-  repos: {
-    total: totalRepos,
-    public: publicRepos,
-    private: privateRepos,
-  },
-  stars: totalStars,
-  commits: {
-    total: publicCommits + privateCommits, // ✅ FIXED
-    public: publicCommits,
-    private: privateCommits,
-  },
-};
-
-  
-    setGitStats(stats);
-    setGithubData(heatmapData);
-
-    console.log("GitHub Stats:", stats);
-  } catch (error) {
-    console.error("GitHub Fetch Error:", error);
-  }
-};
-
-const fetchLeetCodeData = async () => {
-  const cached = localStorage.getItem("leetcode_heatmap");
-
-  if (cached) {
-    setLeetcodeData(JSON.parse(cached));
-    return;
-  }
-
-  const res = await fetch(
-    "https://alfa-leetcode-api.onrender.com/5HLBLRxRzq/calendar"
-  );
-
-  const json = await res.json();
-  const parsed = JSON.parse(json.submissionCalendar);
-
-  const today = new Date();
-  const start = new Date();
-  start.setDate(today.getDate() - 26 * 7);
-
-  const result = [];
-
-  for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
-    const timestamp = Math.floor(d.getTime() / 1000);
-
-    result.push({
-      date: d.toISOString().split("T")[0],
-      count: parsed[timestamp] || 0,
-    });
-  }
-
-  localStorage.setItem("leetcode_heatmap", JSON.stringify(result)); // 🔥 cache
-  setLeetcodeData(result);
-};
-
 
 useEffect(() => {
-  fetchGitHubData();
+  const loadGitHub = async () => {
+    try {
+      const { stats, heatmap } = await fetchGitHubStats();
 
+      setGitStats(stats);
+      setGithubData(heatmap);
+    } catch (error) {
+      console.error("GitHub Fetch Error:", error);
+    }
+  };
+
+  loadGitHub();
 }, []);
+
 useEffect(() => {
+  const loadLeetCode = async () => {
+    try {
+      const { stats, heatmap } = await fetchLeetCodeStats("5HLBLRxRzq");
 
-  fetchLeetCodeData();
+      setLeetcodeData(heatmap);
+      setLeetCodeStats(stats);
+    } catch (error) {
+      console.error("LeetCode error:", error);
+    }
+  };
+
+  loadLeetCode();
 }, []);
 
+useEffect(() => {
+  const load = async () => {
+    const res = await fetchTechStack({
+      page: 1,
+      limit: 20,
+    });
 
+    setTechs(res.data);
+  };
+
+  load();
+}, []);
 
 
 
@@ -235,24 +127,30 @@ const githubStatsConfig = [
     progress: (gitStats?.commits?.total / maxValue) * 100,
   },
 ];
+const total = leetCodeStats?.totalSolved || 0;
 const leetCodeStatsConfig = [
   {
-    label: "Stars",
-    value: gitStats?.stars || 0,
-    icon: <Star className="w-4 h-4 text-cyan-400" />,
-    progress: (gitStats?.stars / maxValue) * 100,
+    label: "Total Problems Solved",
+    value: total,
+    icon: <Target className="w-4 h-4 text-cyan-400" />,
   },
   {
-    label: "Repos",
-    value: gitStats?.repos?.total || 0,
-    icon: <GitBranch className="w-4 h-4 text-cyan-400" />,
-    progress: (gitStats?.repos?.total / maxValue) * 100,
+    label: "Easy Problems",
+    value: leetCodeStats?.easy || 0,
+    icon: <Smile className="w-4 h-4 text-green-400" />,
+   
   },
   {
-    label: "Commits",
-    value: gitStats?.commits?.total || 0,
-    icon: <GitCommit className="w-4 h-4 text-cyan-400" />,
-    progress: (gitStats?.commits?.total / maxValue) * 100,
+    label: "Medium Problems",
+    value: leetCodeStats?.medium || 0,
+    icon: <TrendingUp className="w-4 h-4 text-yellow-400" />,
+   
+  },
+  {
+    label: "Hard Problems",
+    value: leetCodeStats?.hard || 0,
+    icon: <Flame className="w-4 h-4 text-red-400" />,
+    
   },
 ];
 
@@ -501,14 +399,14 @@ const leetCodeStatsConfig = [
                 />
                 <HeatmapGrid 
                   title="LeetCode Activity" 
-                  weeks={14}
-                  subtitle="14 weeks of problems solved"
+                  weeks={26}
+                  subtitle="26 weeks of problems solved"
                   data={leetcodeData}
                 />
               {/* </div> */}
               {/* Right: Code Stats */}
             </div>
-              <div className="grid md:grid-cols-2 gap-4 w-full mt-8">
+              <div className="grid md:grid-cols-2 gap-4 w-full mt-8 items-stretch">
                     
                 <CodeStats
   header="GitHub Protocol"
@@ -516,7 +414,7 @@ const leetCodeStatsConfig = [
   stats={githubStatsConfig}
 />
                 <CodeStats
-  header="GitHub Protocol"
+  header="LeetCode Protocol"
   icon={<GitBranch className="w-4 h-4 text-cyan-400" />}
   stats={leetCodeStatsConfig}
 />
@@ -527,23 +425,10 @@ const leetCodeStatsConfig = [
    
 
         {/* Tech Stack */}
-        <section className="scroll-section opacity-0 px-6 md:px-0 mb-16">
-          <div className="container">
-            <h2 className="section-header text-xs font-mono text-muted-foreground uppercase tracking-widest mb-6">
-              // Tech Stack
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {["React", "TypeScript", "Node.js", "Next.js", "Tailwind CSS", "PostgreSQL", "Docker", "AWS", "GraphQL", "Redis"].map((tech) => (
-                <span
-                  key={tech}
-                  className="tech-tag px-3 py-1.5 rounded-lg bg-card border border-border text-sm font-mono text-foreground hover-lift cursor-default"
-                >
-                  {tech}
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
+     <TechStack
+  title="// Tech Stack"
+  techs={techs.length > 0 ? techs.map(t => t.name) : ["React", "Node.js", "Express", "MongoDB", "TypeScript"]}
+/>
 
 
         {/* Recent Projects */}
