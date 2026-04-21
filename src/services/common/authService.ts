@@ -1,14 +1,8 @@
 import axios from "axios";
 import { authApi } from "./api";
-
-
-// ==============================
-// 🔹 TYPES
-// ==============================
 export interface UserData {
   [key: string]: any;
 }
-
 export interface AuthResponse {
   access_token?: string;
   refresh_token?: string;
@@ -18,11 +12,6 @@ export interface AuthResponse {
   user?: UserData;
   userData?: UserData;
 }
-
-// ==============================
-// 🔹 COOKIE HELPERS (SAFE)
-// ==============================
-
 const getCookie = (name: string): string | null => {
   const cookies = document.cookie.split(";");
   for (let c of cookies) {
@@ -33,18 +22,10 @@ const getCookie = (name: string): string | null => {
   }
   return null;
 };
-
 const deleteCookie = (name: string) => {
   document.cookie = `${name}=; Max-Age=0; path=/`;
 };
-
-// ==============================
-// 🔹 AUTH SERVICE
-// ==============================
-
-// Helper for consistent baseURL
-const getBaseURL = () => import.meta.env.VITE_API_URL || "https://portfolio-backend-1-bsic.onrender.com/api/";
-
+const getBaseURL = () => import.meta.env.VITE_API_URL ;
 const isLikelyLocalhost = () => {
   const h = window.location.hostname;
   return (
@@ -57,19 +38,19 @@ const isLikelyLocalhost = () => {
 };
 
 export const authService = {
-  // 🔐 Get token
+
   getCurrentToken(): string | null {
     const token = getCookie("token");
     return (token && token !== "undefined" && token !== "null") ? token : null;
   },
 
-  // 🔄 Get refresh token
+
   getRefreshToken(): string | null {
     const token = getCookie("refresh_token");
     return (token && token !== "undefined" && token !== "null") ? token : null;
   },
 
-  // 👤 Get user data
+
   getUserData(): UserData | null {
     const data = getCookie("userData");
     try {
@@ -79,7 +60,7 @@ export const authService = {
     }
   },
 
-  // 🔐 Check login
+
   isAuthenticated(): boolean {
     const token = this.getCurrentToken();
     const isAuth = !!token;
@@ -94,7 +75,7 @@ export const authService = {
     return isAuth;
   },
 
-  // 🚀 LOGIN
+
   async login(payload: any): Promise<AuthResponse> {
     try {
       const baseURL = getBaseURL();
@@ -149,7 +130,7 @@ export const authService = {
 
 
 
-  // 📦 STORE TOKENS
+
   storeTokenData(accessToken: string, refreshToken: string): void {
     if (!accessToken) return;
 
@@ -171,7 +152,6 @@ export const authService = {
 
   },
 
-  // 🗑️ CLEAR DATA
   clearStoredData(): void {
     deleteCookie("token");
     deleteCookie("refresh_token");

@@ -62,7 +62,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       <div className="p-6 border-t">
         <Button
           onClick={() => {
-            authService.logout();
+            // authService.logout();
           }}
           variant="destructive"
           className="w-full gap-2"

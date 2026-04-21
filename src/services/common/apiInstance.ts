@@ -68,7 +68,7 @@ apiInstance.interceptors.response.use(
         const hadToken = !!authService.getCurrentToken();
         if (hadToken) {
           toastError("Session expired");
-          authService.logout();
+          // authService.logout();
         }
       } else if (status === 403) {
         toastError("No permission");
