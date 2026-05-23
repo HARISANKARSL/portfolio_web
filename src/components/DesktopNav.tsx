@@ -25,7 +25,7 @@ console.log(" isAuthenticated:", isAuthenticated);
         <Link to="/" className="flex items-center gap-2 group">
           <Terminal className="w-5 h-5 text-primary transition-transform group-hover:rotate-12" />
           <span className="font-mono text-sm font-semibold text-foreground">
-            portfolio<span className="text-primary">.dev</span>
+            HARISANKAR<span className="text-primary">()</span>
           </span>
         </Link>
 

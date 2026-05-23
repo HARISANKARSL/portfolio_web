@@ -1,23 +1,14 @@
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import {
   Select,
   SelectContent,
@@ -25,255 +16,602 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import { Trash2, Edit } from "lucide-react";
+
+import {
+  Trash2,
+  Edit,
+} from "lucide-react";
+
 import DashboardLayout from "@/components/DashboardLayout";
+import SectionHeader from "@/components/SectionHeader";
+import DataTable, {
+  DataTableColumn,
+} from "@/components/DataTable";
+
+import SkillCard from "@/components/SkillCard";
+
+import FormRow, {
+  FormFieldConfig,
+} from "@/components/FormRow";
+
 import { fetchTechStack } from "@/services/techstacks/techstack";
-import { useEffect } from "react";
 
 interface Skill {
-  id: string;
+  _id: string;
+  userId?: string;
   name: string;
-  category: string;
-  proficiency: string;
+  description?: string;
+  icon?: string;
+  image?: string;
+  category?: string;
+
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
+
+type ViewType = "table" | "grid";
 
 const SkillsAdmin = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadSkills = async () => {
-      try {
-        setIsLoading(true);
-        const res = await fetchTechStack({ limit: 100 });
-        setSkills(res.data);
-      } catch (error) {
-        console.error("Failed to load skills:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadSkills();
-  }, []);
+  const [viewType, setViewType] =
+    useState<ViewType>("table");
 
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    proficiency: "",
-  });
+  // Pagination
+  const [page, setPage] = useState(1);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [pageSize, setPageSize] =
+    useState(10);
+
+  const [pagination, setPagination] =
+    useState({
+      currentPage: 1,
+      pageSize: 10,
+      totalCount: 0,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    });
+
+  // Search
+  const [search, setSearch] = useState("");
+
+  const debounceTimer =
+    useRef<NodeJS.Timeout | null>(null);
+
+  // Dialog
   const [open, setOpen] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const [editingId, setEditingId] =
+    useState<string | null>(null);
+
+  // Form
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    category: "",
+  
+  });
+
+  // FORM CONFIG
+  const formFieldsConfig: FormFieldConfig[] =
+    [
+      {
+        id: "name",
+        name: "name",
+        type: "text",
+        label: "Skill Name",
+        placeholder: "React",
+        value: formData.name,
+        required: true,
+      },
+
+      {
+        id: "description",
+        name: "description",
+        type: "text",
+        label: "Description",
+        placeholder: "Frontend Library",
+        value: formData.description,
+      },
+
+      {
+        id: "category",
+        name: "category",
+        type: "select",
+        label: "Category",
+        placeholder: "Select Category",
+        value: formData.category,
+
+        options: [
+          {
+            label: "Frontend",
+            value: "Frontend",
+          },
+          {
+            label: "Backend",
+            value: "Backend",
+          },
+          {
+            label: "Database",
+            value: "Database",
+          },
+          {
+            label: "DevOps",
+            value: "DevOps",
+          },
+        ],
+      },
+
+    
+    ];
+
+  // FETCH SKILLS
+ const fetchSkills = useCallback(
+  async (
+    currentPage = 1,
+    currentPageSize = 10,
+    searchQuery = ""
+  ) => {
+    try {
+      setIsLoading(true);
+
+      const payload = {
+        search: searchQuery,
+        page: currentPage,
+        limit: currentPageSize,
+      };
+
+      const res = await fetchTechStack(
+        payload as any
+      );
+
+      console.log("FULL API RESPONSE", res);
+
+      // IMPORTANT FIX
+      const skillsData = res?.data || [];
+
+      console.log(
+        "SKILLS DATA",
+        skillsData
+      );
+
+      setSkills(skillsData);
+
+      if (res?.pagination) {
+        setPagination(res.pagination);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to fetch skills",
+        error
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  },
+  []
+);
+  // INITIAL LOAD
+  useEffect(() => {
+    fetchSkills(page, pageSize, search);
+  }, []);
+
+  // SEARCH
+  useEffect(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      setPage(1);
+
+      fetchSkills(1, pageSize, search);
+    }, 500);
+
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [search]);
+
+  // FIELD CHANGE
+  const handleFieldChange = (
+    fieldId: string,
+    value: string | number | boolean
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [fieldId]: value,
+    }));
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
+  // ADD SKILL
   const handleAddSkill = () => {
-    if (!formData.name || !formData.category || !formData.proficiency) {
-      alert("Please fill all fields");
+    if (!formData.name) {
+      alert("Skill name required");
       return;
     }
 
+    const newSkill: Skill = {
+      _id: Date.now().toString(),
+      name: formData.name,
+      description: formData.description,
+      category: formData.category,
+    
+      status: "active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
     if (editingId) {
-      setSkills(
-        skills.map((skill) =>
-          skill.id === editingId
-            ? { ...skill, ...formData }
+      setSkills((prev) =>
+        prev.map((skill) =>
+          skill._id === editingId
+            ? {
+                ...skill,
+                ...newSkill,
+              }
             : skill
         )
       );
-      setEditingId(null);
     } else {
-      setSkills([
-        ...skills,
-        {
-          id: Date.now().toString(),
-          ...formData,
-        },
+      setSkills((prev) => [
+        newSkill,
+        ...prev,
       ]);
     }
 
-    setFormData({ name: "", category: "", proficiency: "" });
+    setEditingId(null);
+
+    setFormData({
+      name: "",
+      description: "",
+      category: "",
+  
+    });
+
     setOpen(false);
   };
 
+  // DELETE
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this skill?")) {
-      setSkills(skills.filter((skill) => skill.id !== id));
-    }
+    const confirmDelete = confirm(
+      "Delete this skill?"
+    );
+
+    if (!confirmDelete) return;
+
+    setSkills((prev) =>
+      prev.filter((skill) => skill._id !== id)
+    );
   };
 
+  // EDIT
   const handleEdit = (skill: Skill) => {
+    setEditingId(skill._id);
+
     setFormData({
-      name: skill.name,
-      category: skill.category,
-      proficiency: skill.proficiency,
+      name: skill.name || "",
+      description:
+        skill.description || "",
+      category: skill.category || "",
+  
     });
-    setEditingId(skill.id);
+
     setOpen(true);
   };
+
+  // PAGINATION
+  const handlePageChange = (
+    newPage: number
+  ) => {
+    setPage(newPage);
+
+    fetchSkills(newPage, pageSize, search);
+  };
+
+  const handlePageSizeChange = (
+    value: string
+  ) => {
+    const size = parseInt(value);
+
+    setPageSize(size);
+
+    fetchSkills(1, size, search);
+  };
+
+  // TABLE COLUMNS
+  const tableColumns: DataTableColumn[] =
+    [
+      {
+        key: "name",
+        label: "Skill Name",
+      },
+
+     {
+  key: "description",
+  label: "Description",
+  render: (_, row) => {
+    console.log("row", row);
+    return (
+      <span>
+        {row?.description || "-"}
+      </span>
+    );
+  },
+},
+
+      {
+        key: "status",
+        label: "Status",
+
+        render: (value) => {
+          const isActive =
+            value?.toLowerCase() ===
+            "active";
+
+          return (
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${
+                isActive
+                  ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                  : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+              }`}
+            >
+              {isActive
+                ? "Active"
+                : "Inactive"}
+            </span>
+          );
+        },
+      },
+
+      {
+        key: "createdAt",
+        label: "Created",
+
+        render: (value) =>
+          value
+            ? new Date(
+                value
+              ).toLocaleDateString()
+            : "-",
+      },
+    ];
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Skills Management</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Add, edit, and manage your skills
-            </p>
-          </div>
+        {/* HEADER */}
+        <SectionHeader
+          title="Skills Management"
+          description="Add, edit, and manage your skills"
+          button
+          buttonLabel="Add Skill"
+          onButtonClick={() => {
+            setEditingId(null);
 
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setEditingId(null);
-                  setFormData({ name: "", category: "", proficiency: "" });
-                }}
-              >
-                + Add Skill
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {editingId ? "Edit Skill" : "Add New Skill"}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingId
-                    ? "Update the skill details below"
-                    : "Fill in the skill details to add a new skill"}
-                </DialogDescription>
-              </DialogHeader>
+            setFormData({
+              name: "",
+              description: "",
+              category: "",
+            
+            });
 
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Skill Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="e.g., React"
+            setOpen(true);
+          }}
+        />
+
+        {/* DIALOG */}
+        <Dialog
+          open={open}
+          onOpenChange={setOpen}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {editingId
+                  ? "Edit Skill"
+                  : "Add Skill"}
+              </DialogTitle>
+
+              <DialogDescription>
+                Fill skill details below
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {formFieldsConfig.map(
+                (field) => (
+                  <FormRow
+                    key={field.id}
+                    field={field}
+                    onChange={(value) =>
+                      handleFieldChange(
+                        field.id,
+                        value
+                      )
+                    }
                   />
-                </div>
+                )
+              )}
 
-                <div>
-                  <Label htmlFor="category">Category</Label>
-                  <Select
-                    value={formData.category}
-                    onValueChange={(value) =>
-                      handleSelectChange("category", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Frontend">Frontend</SelectItem>
-                      <SelectItem value="Backend">Backend</SelectItem>
-                      <SelectItem value="Database">Database</SelectItem>
-                      <SelectItem value="DevOps">DevOps</SelectItem>
-                      <SelectItem value="Language">Language</SelectItem>
-                      <SelectItem value="Tool">Tool</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <Button
+                className="w-full"
+                onClick={handleAddSkill}
+              >
+                {editingId
+                  ? "Update Skill"
+                  : "Add Skill"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-                <div>
-                  <Label htmlFor="proficiency">Proficiency Level</Label>
-                  <Select
-                    value={formData.proficiency}
-                    onValueChange={(value) =>
-                      handleSelectChange("proficiency", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select proficiency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Beginner">Beginner</SelectItem>
-                      <SelectItem value="Intermediate">Intermediate</SelectItem>
-                      <SelectItem value="Advanced">Advanced</SelectItem>
-                      <SelectItem value="Expert">Expert</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* TABLE VIEW */}
+        {viewType === "table" && (
+          <>
+            <DataTable
+              data={skills || []}
+              config={{
+                columns: tableColumns,
 
-                <Button onClick={handleAddSkill} className="w-full">
-                  {editingId ? "Update Skill" : "Add Skill"}
+                columnOrder: [
+                  "name",
+                  "description",
+                  "status",
+                  "createdAt",
+                ],
+
+                isLoading: isLoading,
+
+                emptyMessage:
+                  "No skills found",
+
+                actions: "Actions",
+
+                // SEARCH
+                search: true,
+                searchPlaceholder:
+                  "Search skills...",
+                searchValue: search,
+                onSearchChange:
+                  setSearch,
+
+                // VIEW
+                viewType: viewType,
+                onViewChange:
+                  setViewType,
+
+                actionRender: (
+                  skill: Skill
+                ) => (
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        handleEdit(skill)
+                      }
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        handleDelete(
+                          skill._id
+                        )
+                      }
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  </div>
+                ),
+              }}
+            />
+
+            {/* PAGINATION */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">
+                  Page Size
+                </span>
+
+                <Select
+                  value={pageSize.toString()}
+                  onValueChange={
+                    handlePageSizeChange
+                  }
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    <SelectItem value="5">
+                      5
+                    </SelectItem>
+
+                    <SelectItem value="10">
+                      10
+                    </SelectItem>
+
+                    <SelectItem value="20">
+                      20
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    !pagination.hasPreviousPage
+                  }
+                  onClick={() =>
+                    handlePageChange(
+                      page - 1
+                    )
+                  }
+                >
+                  Previous
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    !pagination.hasNextPage
+                  }
+                  onClick={() =>
+                    handlePageChange(
+                      page + 1
+                    )
+                  }
+                >
+                  Next
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </div>
+          </>
+        )}
 
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Skill Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Proficiency</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
-                    Loading skills...
-                  </TableCell>
-                </TableRow>
-              ) : skills.length > 0 ? (
-                skills.map((skill) => (
-                  <TableRow key={skill.id}>
-                    <TableCell className="font-medium">{skill.name}</TableCell>
-                    <TableCell>{skill.category}</TableCell>
-                    <TableCell>
-                      <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm">
-                        {skill.proficiency}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(skill)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(skill.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
-                    No skills yet. Add one to get started!
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </Card>
+        {/* GRID VIEW */}
+        {viewType === "grid" && (
+          <>
+            {isLoading ? (
+              <div className="text-center py-10">
+                Loading skills...
+              </div>
+            ) : skills.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {skills.map((skill) => (
+                  <SkillCard
+                    key={skill._id}
+                    skill={skill}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10">
+                No skills found
+              </div>
+            )}
+          </>
+        )}
       </div>
     </DashboardLayout>
   );
 };
-
 export default SkillsAdmin;

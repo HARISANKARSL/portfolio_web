@@ -13,6 +13,11 @@ import TechStack from "@/components/TechStack";
 import { fetchLeetCodeStats } from "@/services/leetcode/leetcodeservice";
 import { fetchTechStack } from "@/services/techstacks/techstack";
 
+
+import { fetchProjects } from "@/services/projects/projectsservice";
+import ProjectCard from "@/components/ProjectCard";
+import NoDataFound from "@/components/NoDataFound";
+
 interface HeatmapCell {
   date: string;
   count: number;
@@ -39,6 +44,7 @@ const [leetcodeData, setLeetcodeData] = useState<HeatmapCell[]>([]);
 const [gitStats, setGitStats] = useState<GitHubStats | null>(null);
 const [leetCodeStats, setLeetCodeStats] = useState<any>(null);
 const [techs, setTechs] = useState<any[]>([]);
+const [projects, setProjects] = useState([]);
 interface GitHubStats {
   repos: {
     total: number;
@@ -55,7 +61,7 @@ interface GitHubStats {
 
 
 
-
+// github
 useEffect(() => {
   const loadGitHub = async () => {
     try {
@@ -70,7 +76,7 @@ useEffect(() => {
 
   loadGitHub();
 }, []);
-
+// leetcode
 useEffect(() => {
   const loadLeetCode = async () => {
     try {
@@ -85,7 +91,7 @@ useEffect(() => {
 
   loadLeetCode();
 }, []);
-
+// stack list
 useEffect(() => {
   const load = async () => {
     const res = await fetchTechStack({
@@ -98,7 +104,19 @@ useEffect(() => {
 
   load();
 }, []);
+// project list
+useEffect(() => {
+  const load = async () => {
+    const res = await fetchProjects({
+      page: 1,
+      limit: 3, 
+    });
 
+    setProjects(res.data);
+  };
+
+  load();
+}, []);
 
 
 const maxValue = Math.max(
@@ -430,8 +448,10 @@ const leetCodeStatsConfig = [
   techs={techs.length > 0 ? techs.map(t => t.name) : ["React", "Node.js", "Express", "MongoDB", "TypeScript"]}
 />
 
+{/* recent projects */}
 
-        {/* Recent Projects */}
+
+       
         <section className="scroll-section opacity-0 px-6 md:px-0 mb-16">
           <div className="container">
             <div className="flex items-center justify-between mb-6">
@@ -443,27 +463,18 @@ const leetCodeStatsConfig = [
               </a>
             </div>
             <div className="grid md:grid-cols-3 gap-4" style={{ perspective: "1000px" }}>
-              {[
-                { title: "E-Commerce Platform", desc: "Full-stack marketplace with real-time features", tags: ["React", "Node.js", "MongoDB"] },
-                { title: "Analytics Dashboard", desc: "Data visualization tool for SaaS metrics", tags: ["Next.js", "D3.js", "PostgreSQL"] },
-                { title: "AI Chat Application", desc: "Real-time chat with AI-powered responses", tags: ["TypeScript", "OpenAI", "WebSocket"] },
-              ].map((project) => (
-                <div key={project.title} className="project-card-home opacity-0 bg-card border border-border rounded-xl p-5 hover-lift group cursor-pointer">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Code className="w-4 h-4 text-primary" />
-                    <GitBranch className="w-3 h-3 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{project.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">{project.desc}</p>
-                  <div className="flex gap-2 mt-3">
-                    {project.tags.map((tag) => (
-                      <span key={tag} className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
+             
+             {
+              projects.length>0?<>
+               {projects.map((project) => (
+              <ProjectCard
+                key={project._id}
+                project={project}
+              />
+            ))}
+              </>:<NoDataFound message="No Project Found"/>
+             }
+             
             </div>
           </div>
         </section>
