@@ -31,10 +31,16 @@ apiInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = authService.getCurrentToken();
 
-    // ✅ ONLY set if not already passed manually
-    if (!config.headers?.Authorization && token) {
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log("🔑 Auth header added:", `Bearer ${token.substring(0, 10)}...`);
+    if (token) {
+      if (config.headers && typeof config.headers.set === 'function') {
+        config.headers.set("Authorization", `Bearer ${token}`);
+      } else {
+        if (!config.headers) {
+          config.headers = {} as any;
+        }
+        config.headers["Authorization"] = `Bearer ${token}`;
+      }
+      console.log("🔑 Auth header added successfully:", `Bearer ${token.substring(0, 10)}...`);
     }
 
     if (!navigator.onLine) {

@@ -29,12 +29,21 @@ import DataTable, {
 } from "@/components/DataTable";
 
 import SkillCard from "@/components/SkillCard";
+import TableToolbar from "@/components/TableToolbar";
 
 import FormRow, {
   FormFieldConfig,
 } from "@/components/FormRow";
 
-import { fetchTechStack } from "@/services/techstacks/techstack";
+import { toast } from "@/components/ui/use-toast";
+import DynamicIcon from "@/components/DynamicIcon";
+
+import {
+  createSkillStack,
+  fetchTechStack,
+  getSkillStackById,
+  deleteSkillStack,
+} from "@/services/techstacks/techstack";
 
 interface Skill {
   _id: string;
@@ -43,7 +52,7 @@ interface Skill {
   description?: string;
   icon?: string;
   image?: string;
-  category?: string;
+
 
   status: string;
   createdAt: string;
@@ -55,6 +64,7 @@ type ViewType = "table" | "grid";
 const SkillsAdmin = () => {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [viewType, setViewType] =
     useState<ViewType>("table");
@@ -91,8 +101,9 @@ const SkillsAdmin = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    category: "",
-  
+    icon: "",
+    image: ""
+
   });
 
   // FORM CONFIG
@@ -106,94 +117,91 @@ const SkillsAdmin = () => {
         placeholder: "React",
         value: formData.name,
         required: true,
+        disabled: isSaving,
       },
+
+      {
+        id: "icon",
+        name: "icon",
+        type: "text",
+        label: "Icon",
+        placeholder: "Add Icon",
+        value: formData.icon,
+        disabled: isSaving,
+      }
+
+      ,
+      {
+        id: "image",
+        name: "image",
+        type: "text",
+        label: "Image",
+        placeholder: "Add Image URL",
+        value: formData.image,
+        disabled: isSaving,
+      },
+
 
       {
         id: "description",
         name: "description",
-        type: "text",
+        type: "textarea",
         label: "Description",
         placeholder: "Frontend Library",
         value: formData.description,
+        disabled: isSaving,
       },
 
-      {
-        id: "category",
-        name: "category",
-        type: "select",
-        label: "Category",
-        placeholder: "Select Category",
-        value: formData.category,
 
-        options: [
-          {
-            label: "Frontend",
-            value: "Frontend",
-          },
-          {
-            label: "Backend",
-            value: "Backend",
-          },
-          {
-            label: "Database",
-            value: "Database",
-          },
-          {
-            label: "DevOps",
-            value: "DevOps",
-          },
-        ],
-      },
-
-    
     ];
 
   // FETCH SKILLS
- const fetchSkills = useCallback(
-  async (
-    currentPage = 1,
-    currentPageSize = 10,
-    searchQuery = ""
-  ) => {
-    try {
-      setIsLoading(true);
+  const fetchSkills = useCallback(
+    async (
+      currentPage = 1,
+      currentPageSize = 10,
+      searchQuery = ""
+    ) => {
+      try {
+        setIsLoading(true);
 
-      const payload = {
-        search: searchQuery,
-        page: currentPage,
-        limit: currentPageSize,
-      };
+        const payload = {
+          search: searchQuery,
+          page: currentPage,
+          limit: currentPageSize,
+        };
 
-      const res = await fetchTechStack(
-        payload as any
-      );
+        const res = await fetchTechStack(
+          payload as any
+        );
 
-      console.log("FULL API RESPONSE", res);
+        console.log("FULL API RESPONSE", res);
 
-      // IMPORTANT FIX
-      const skillsData = res?.data || [];
+        // IMPORTANT FIX
+        const skillsData = res?.data || [];
 
-      console.log(
-        "SKILLS DATA",
-        skillsData
-      );
+        console.log(
+          "SKILLS DATA",
+          skillsData
+        );
 
-      setSkills(skillsData);
+        setSkills(skillsData);
 
-      if (res?.pagination) {
-        setPagination(res.pagination);
+        if (res?.pagination) {
+          setPagination(res.pagination);
+        }
+      } catch (error) {
+        console.error(
+          "Failed to fetch skills",
+          error
+        );
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error(
-        "Failed to fetch skills",
-        error
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  },
-  []
-);
+    },
+    []
+  );
+
   // INITIAL LOAD
   useEffect(() => {
     fetchSkills(page, pageSize, search);
@@ -229,80 +237,121 @@ const SkillsAdmin = () => {
     }));
   };
 
-  // ADD SKILL
-  const handleAddSkill = () => {
+  // ADD / EDIT SKILL
+  const handleAddSkill = async () => {
     if (!formData.name) {
-      alert("Skill name required");
+      toast({
+        title: "Required Field Missing",
+        description: "Skill name is required.",
+        variant: "destructive",
+      });
       return;
     }
 
-    const newSkill: Skill = {
-      _id: Date.now().toString(),
-      name: formData.name,
-      description: formData.description,
-      category: formData.category,
-    
-      status: "active",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      setIsSaving(true);
 
-    if (editingId) {
-      setSkills((prev) =>
-        prev.map((skill) =>
-          skill._id === editingId
-            ? {
-                ...skill,
-                ...newSkill,
-              }
-            : skill
-        )
-      );
-    } else {
-      setSkills((prev) => [
-        newSkill,
-        ...prev,
-      ]);
+      const payload: any = {
+        ...(editingId ? { _id: editingId } : {}),
+        name: formData.name,
+        status: "active",
+      };
+
+      if (formData.description && formData.description.trim() !== "") {
+        payload.description = formData.description.trim();
+      }
+      if (formData.icon && formData.icon.trim() !== "") {
+        payload.icon = formData.icon.trim();
+      }
+      if (formData.image && formData.image.trim() !== "") {
+        payload.image = formData.image.trim();
+      }
+
+      const result = await createSkillStack(payload);
+      console.log("Skill saved successfully:", result);
+
+      toast({
+        title: "Success",
+        description: `Skill "${formData.name}" saved successfully!`,
+      });
+
+      // Reset form and close dialog
+      setEditingId(null);
+      setFormData({
+        name: "",
+        description: "",
+        icon: "",
+        image: "",
+      });
+      setOpen(false);
+
+      // Refresh the skills list from the API
+      await fetchSkills(page, pageSize, search);
+    } catch (error) {
+      console.error("Failed to save skill:", error);
+      toast({
+        title: "Error Saving Skill",
+        description: "Failed to save the skill. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
-
-    setEditingId(null);
-
-    setFormData({
-      name: "",
-      description: "",
-      category: "",
-  
-    });
-
-    setOpen(false);
   };
 
   // DELETE
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const confirmDelete = confirm(
       "Delete this skill?"
     );
 
     if (!confirmDelete) return;
 
-    setSkills((prev) =>
-      prev.filter((skill) => skill._id !== id)
-    );
+    try {
+      setIsLoading(true);
+      await deleteSkillStack(id);
+      console.log("Skill deleted successfully:", id);
+      toast({
+        title: "Success",
+        description: "Skill deleted successfully!",
+      });
+      await fetchSkills(page, pageSize, search);
+    } catch (error) {
+      console.error("Failed to delete skill:", error);
+      toast({
+        title: "Error Deleting Skill",
+        description: "Failed to delete the skill. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // EDIT
-  const handleEdit = (skill: Skill) => {
-    setEditingId(skill._id);
-
-    setFormData({
-      name: skill.name || "",
-      description:
-        skill.description || "",
-      category: skill.category || "",
-  
-    });
-
-    setOpen(true);
+  const handleEdit = async (skill: Skill) => {
+    try {
+      setIsLoading(true);
+      const detailedSkill = await getSkillStackById(skill._id);
+      
+      setEditingId(detailedSkill._id);
+      setFormData({
+        name: detailedSkill.name || "",
+        description: detailedSkill.description || "",
+        icon: detailedSkill.icon || "",
+        image: detailedSkill.image || "",
+      });
+      setOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch skill details:", error);
+      toast({
+        title: "Error Loading Details",
+        description: "Failed to load skill details from backend. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // PAGINATION
@@ -330,20 +379,30 @@ const SkillsAdmin = () => {
       {
         key: "name",
         label: "Skill Name",
+        render: (_, row) => (
+          <div className="flex items-center gap-2">
+            {row?.icon && (
+              <div className="p-1 bg-slate-100 dark:bg-slate-800 rounded text-foreground flex items-center justify-center shrink-0">
+                <DynamicIcon name={row.icon} className="w-4 h-4" />
+              </div>
+            )}
+            <span className="font-medium">{row?.name}</span>
+          </div>
+        ),
       },
 
-     {
-  key: "description",
-  label: "Description",
-  render: (_, row) => {
-    console.log("row", row);
-    return (
-      <span>
-        {row?.description || "-"}
-      </span>
-    );
-  },
-},
+      {
+        key: "description",
+        label: "Description",
+        render: (_, row) => {
+          console.log("row", row);
+          return (
+            <span>
+              {row?.description || "-"}
+            </span>
+          );
+        },
+      },
 
       {
         key: "status",
@@ -356,11 +415,10 @@ const SkillsAdmin = () => {
 
           return (
             <span
-              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                isActive
-                  ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
-                  : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
-              }`}
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${isActive
+                ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+                }`}
             >
               {isActive
                 ? "Active"
@@ -377,8 +435,8 @@ const SkillsAdmin = () => {
         render: (value) =>
           value
             ? new Date(
-                value
-              ).toLocaleDateString()
+              value
+            ).toLocaleDateString()
             : "-",
       },
     ];
@@ -398,8 +456,10 @@ const SkillsAdmin = () => {
             setFormData({
               name: "",
               description: "",
-              category: "",
-            
+              icon: "",
+              image: "",
+
+
             });
 
             setOpen(true);
@@ -409,9 +469,11 @@ const SkillsAdmin = () => {
         {/* DIALOG */}
         <Dialog
           open={open}
-          onOpenChange={setOpen}
+          onOpenChange={(val) => {
+            if (!isSaving) setOpen(val);
+          }}
         >
-          <DialogContent>
+          <DialogContent className={isSaving ? "pointer-events-none" : ""}>
             <DialogHeader>
               <DialogTitle>
                 {editingId
@@ -441,16 +503,31 @@ const SkillsAdmin = () => {
               )}
 
               <Button
-                className="w-full"
+                className="w-full gap-2 relative"
                 onClick={handleAddSkill}
+                disabled={isSaving}
               >
-                {editingId
-                  ? "Update Skill"
-                  : "Add Skill"}
+                {isSaving ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                    {editingId ? "Updating Skill..." : "Adding Skill..."}
+                  </>
+                ) : (
+                  editingId ? "Update Skill" : "Add Skill"
+                )}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* TOOLBAR */}
+        <TableToolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          viewType={viewType}
+          onViewChange={setViewType}
+          searchPlaceholder="Search skills..."
+        />
 
         {/* TABLE VIEW */}
         {viewType === "table" && (
@@ -473,19 +550,6 @@ const SkillsAdmin = () => {
                   "No skills found",
 
                 actions: "Actions",
-
-                // SEARCH
-                search: true,
-                searchPlaceholder:
-                  "Search skills...",
-                searchValue: search,
-                onSearchChange:
-                  setSearch,
-
-                // VIEW
-                viewType: viewType,
-                onViewChange:
-                  setViewType,
 
                 actionRender: (
                   skill: Skill

@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2 } from "lucide-react";
+import DynamicIcon from "./DynamicIcon";
 
 interface SkillCardProps {
   skill: {
@@ -25,8 +26,15 @@ const SkillCard = ({ skill, onEdit, onDelete }: SkillCardProps) => {
           className="w-full h-32 object-cover rounded"
         />
       )}
-      <div>
-        <h3 className="font-bold text-lg">{skill.name}</h3>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2.5">
+          {skill.icon && (
+            <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-foreground flex items-center justify-center shrink-0">
+              <DynamicIcon name={skill.icon} className="w-5 h-5" />
+            </div>
+          )}
+          <h3 className="font-bold text-lg leading-tight">{skill.name}</h3>
+        </div>
         {skill.description && (
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {skill.description}

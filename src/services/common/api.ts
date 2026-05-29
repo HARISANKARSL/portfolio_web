@@ -7,4 +7,5 @@ export const leetcodeApi = {
 };
 export const skillsApi = {
   listSkills: "skills/fetch",
+  createSkill: "skills/save",
 };

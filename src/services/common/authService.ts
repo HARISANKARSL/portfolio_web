@@ -40,7 +40,10 @@ const isLikelyLocalhost = () => {
 export const authService = {
 
   getCurrentToken(): string | null {
-    const token = getCookie("token");
+    const token = getCookie("token") || 
+                  getCookie("access_token") || 
+                  getCookie("jwt") || 
+                  getCookie("accessToken");
     return (token && token !== "undefined" && token !== "null") ? token : null;
   },
 
@@ -63,11 +66,12 @@ export const authService = {
 
   isAuthenticated(): boolean {
     const token = this.getCurrentToken();
-    const isAuth = !!token;
+    const userData = this.getUserData();
+    const isAuth = !!token || !!userData;
 
     // Debug logging to help identify why redirects happen
     if (!isAuth) {
-      console.log("🔓 Auth Status: Not Authenticated (no valid token found)");
+      console.log("🔓 Auth Status: Not Authenticated (no valid token or userData found)");
     } else {
       console.log("🔒 Auth Status: Authenticated");
     }

@@ -1,15 +1,16 @@
-
 import { skillsApi } from "../common/api";
-import { post } from "../common/apiService";
-
+import { post, get, remove } from "../common/apiService";
 
 export interface TechStackItem {
-  id: string;
+  _id: string;
   name: string;
-  category: string;
-  proficiency: string;
+  description?: string;
+  category?: string;
   icon?: string;
-  percentage?: number;
+  image?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface FetchTechStackParams {
@@ -21,12 +22,21 @@ export interface FetchTechStackParams {
   sortOrder?: 1 | -1;
 }
 
+interface FetchTechStackResponse {
+  data: TechStackItem[];
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
 export const fetchTechStack = async (
   params: FetchTechStackParams = {}
-): Promise<{
-  data: TechStackItem[];
-  pagination: any;
-}> => {
+): Promise<FetchTechStackResponse> => {
   const payload = {
     search: params.search ?? "",
     page: params.page ?? 1,
@@ -36,19 +46,71 @@ export const fetchTechStack = async (
     sortOrder: params.sortOrder ?? -1,
   };
 
-  const response = await post(skillsApi?.listSkills, payload);
+  const response = await post(
+    skillsApi.listSkills,
+    payload
+  );
 
-  const apiData = response?.data || response?.data?.data || [];
+  const apiData = response?.data || [];
 
   return {
-    data: (Array.isArray(apiData) ? apiData : []).map((item: any) => ({
-      id: item._id || item.id,
-      name: item.name,
-      category: item.category || "General",
-      proficiency: item.proficiency || "Intermediate",
-      icon: item.icon || "",
-      percentage: item.percentage || (item.proficiency === "Advanced" ? 90 : item.proficiency === "Expert" ? 95 : 75),
-    })),
-    pagination: response?.pagination || response?.data?.pagination,
+    data: Array.isArray(apiData)
+      ? apiData.map((item: any) => ({
+          _id: item._id,
+          name: item.name || "",
+          description: item.description || "",
+          icon: item.icon || "",
+          image: item.image || "",
+          status: item.status || "active",
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
+        }))
+      : [],
+
+    pagination: response?.pagination || {
+      currentPage: 1,
+      pageSize: 10,
+      totalCount: 0,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
   };
+};
+
+
+export const createSkillStack = async (
+  skillData: Partial<TechStackItem>
+): Promise<TechStackItem> => {
+  try {
+    const response = await post(skillsApi.createSkill, skillData);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating skill:", error);
+    throw error;
+  }
+};
+
+export const getSkillStackById = async (id: string): Promise<TechStackItem> => {
+  try {
+    const response = await get(`skills/${id}`);
+    const data = response?.data;
+    if (Array.isArray(data)) {
+      return data[0];
+    }
+    return data || response;
+  } catch (error) {
+    console.error("Error fetching skill by ID:", error);
+    throw error;
+  }
+};
+
+export const deleteSkillStack = async (id: string): Promise<any> => {
+  try {
+    const response = await remove(`skills/${id}`);
+    return response;
+  } catch (error) {
+    console.error("Error deleting skill:", error);
+    throw error;
+  }
 };
