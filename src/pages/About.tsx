@@ -3,6 +3,7 @@ import Layout from "@/components/Layout";
 import TextReveal from "@/components/TextReveal";
 import { MapPin, Calendar, Award, Briefcase } from "lucide-react";
 import { fetchExperiences, ExperienceItem } from "@/services/experience/experience";
+import profileImg from "../../public/profile.png";
 
 const About = () => {
   const ref = useRef<HTMLDivElement>(null);
@@ -13,7 +14,7 @@ const About = () => {
     const loadExperiences = async () => {
       try {
         const response = await fetchExperiences({ limit: 50, sortBy: "startDate", sortOrder: -1 });
-        const sorted = (response.data || []).sort((a, b) => 
+        const sorted = (response.data || []).sort((a, b) =>
           new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
         );
         setExperiences(sorted);
@@ -33,6 +34,13 @@ const About = () => {
       import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
         gsap.registerPlugin(ScrollTrigger);
         const ctx = gsap.context(() => {
+          // Profile Image Animation
+          gsap.fromTo(
+            ".about-image",
+            { opacity: 0, x: -30, filter: "blur(10px)" },
+            { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.8, ease: "power3.out", delay: 0.2 }
+          );
+
           // Hero info tags stagger
           gsap.fromTo(
             ".about-tag",
@@ -113,25 +121,40 @@ const About = () => {
   return (
     <Layout>
       <div ref={ref} className="px-6 md:px-0">
-        <section className="container max-w-3xl pt-12 md:pt-16">
-          <div className="mb-12">
-            <TextReveal
-              as="h1"
-              className="text-3xl md:text-5xl font-bold font-display mb-4"
-              delay={0.1}
-              stagger={0.08}
-            >
-              About Me
-            </TextReveal>
-            <p className="about-desc opacity-0 text-muted-foreground text-lg leading-relaxed mb-4">
+        <section className="container max-w-4xl pt-12 md:pt-16">
+          <div className="flex flex-col md:flex-row gap-10 items-start mb-16">
+            {/* Image Section */}
+            <div className="w-full md:w-1/3 flex-shrink-0 about-image opacity-0">
+              <div className="relative aspect-square md:aspect-[3/4] overflow-hidden rounded-2xl border border-border/50 bg-muted/20 shadow-xl group">
+                <img
+                  src={profileImg}
+                  alt="Profile"
+                  className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
+              </div>
+            </div>
 
-              Full-Stack Developer with 2+ years of experience, countless cups of coffee, and an unhealthy number of browser tabs open. I love building modern web applications with React and Node.js, solving challenging problems, and turning complex requirements into simple user experiences.
+            {/* Text Section */}
+            <div className="w-full md:w-2/3">
+              <TextReveal
+                as="h1"
+                className="text-3xl md:text-5xl font-bold font-display mb-6"
+                delay={0.1}
+                stagger={0.08}
+              >
+                About Me
+              </TextReveal>
 
-            </p>
-            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-12">
-              <span className="about-tag opacity-0 flex items-center gap-1.5"><MapPin className="w-4 h-4 text-primary" /> Trivandrum, Kerala</span>
-              <span className="about-tag opacity-0 flex items-center gap-1.5"><Calendar className="w-4 h-4 text-primary" /> 2+ Years Exp</span>
-              <span className="about-tag opacity-0 flex items-center gap-1.5"><Award className="w-4 h-4 text-primary" /> 10+ Projects</span>
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-6">
+                <span className="about-tag opacity-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20"><MapPin className="w-4 h-4" /> Trivandrum, Kerala</span>
+                <span className="about-tag opacity-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20"><Calendar className="w-4 h-4" /> 2+ Years Exp</span>
+                <span className="about-tag opacity-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20"><Award className="w-4 h-4" /> 10+ Projects</span>
+              </div>
+
+              <p className="about-desc opacity-0 text-muted-foreground text-lg leading-relaxed">
+                Full-Stack Developer with 2+ years of experience, countless cups of coffee, and an unhealthy number of browser tabs open. I love building modern web applications with React and Node.js, solving challenging problems, and turning complex requirements into simple user experiences.
+              </p>
             </div>
           </div>
 

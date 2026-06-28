@@ -10,7 +10,7 @@ const navItems = [
   { path: "/about", label: "About", icon: User },
   { path: "/skills", label: "Skills", icon: Wrench },
   { path: "/projects", label: "Projects", icon: FolderKanban },
-  { path: "/analytics", label: "Analytics", icon: BarChart3 },
+  // { path: "/analytics", label: "Analytics", icon: BarChart3 },
   { path: "/contact", label: "Contact", icon: Mail },
 ];
 
