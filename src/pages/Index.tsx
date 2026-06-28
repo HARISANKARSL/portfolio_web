@@ -6,7 +6,7 @@ import HeatmapGrid from "@/components/HeatmapGrid";
 import CodeStats from "@/components/CodeStats";
 import TextReveal from "@/components/TextReveal";
 import MagneticButton from "@/components/MagneticButton";
-import { FolderKanban, Users, DollarSign, Code, Star, GitBranch, Sun, Moon, Code2, GitCommit, LocateFixed, Target, Smile, TrendingUp, Flame } from "lucide-react";
+import { FolderKanban, Users, DollarSign, Code, Star, GitBranch, Sun, Moon, Code2, GitCommit, LocateFixed, Target, Smile, TrendingUp, Flame, Calendar, Network } from "lucide-react";
 
 import { fetchGitHubStats } from "@/services/github/githubService";
 import TechStack from "@/components/TechStack";
@@ -39,142 +39,142 @@ const Index = () => {
   const heroRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
 
-const [githubData, setGithubData] = useState<HeatmapCell[]>([]);
-const [leetcodeData, setLeetcodeData] = useState<HeatmapCell[]>([]);
-const [gitStats, setGitStats] = useState<GitHubStats | null>(null);
-const [leetCodeStats, setLeetCodeStats] = useState<any>(null);
-const [techs, setTechs] = useState<any[]>([]);
-const [projects, setProjects] = useState([]);
-interface GitHubStats {
-  repos: {
-    total: number;
-    public: number;
-    private: number;
-  };
-  stars: number;
-  commits: {
-    total: number;
-    public: number;
-    private: number;
-  };
-}
+  const [githubData, setGithubData] = useState<HeatmapCell[]>([]);
+  const [leetcodeData, setLeetcodeData] = useState<HeatmapCell[]>([]);
+  const [gitStats, setGitStats] = useState<GitHubStats | null>(null);
+  const [leetCodeStats, setLeetCodeStats] = useState<any>(null);
+  const [techs, setTechs] = useState<any[]>([]);
+  const [projects, setProjects] = useState([]);
+  interface GitHubStats {
+    repos: {
+      total: number;
+      public: number;
+      private: number;
+    };
+    stars: number;
+    commits: {
+      total: number;
+      public: number;
+      private: number;
+    };
+  }
 
 
 
-// github
-useEffect(() => {
-  const loadGitHub = async () => {
-    try {
-      const { stats, heatmap } = await fetchGitHubStats();
+  // github
+  useEffect(() => {
+    const loadGitHub = async () => {
+      try {
+        const { stats, heatmap } = await fetchGitHubStats();
 
-      setGitStats(stats);
-      setGithubData(heatmap);
-    } catch (error) {
-      console.error("GitHub Fetch Error:", error);
-    }
-  };
+        setGitStats(stats);
+        setGithubData(heatmap);
+      } catch (error) {
+        console.error("GitHub Fetch Error:", error);
+      }
+    };
 
-  loadGitHub();
-}, []);
-// leetcode
-useEffect(() => {
-  const loadLeetCode = async () => {
-    try {
-      const { stats, heatmap } = await fetchLeetCodeStats("5HLBLRxRzq");
+    loadGitHub();
+  }, []);
+  // leetcode
+  useEffect(() => {
+    const loadLeetCode = async () => {
+      try {
+        const { stats, heatmap } = await fetchLeetCodeStats("5HLBLRxRzq");
 
-      setLeetcodeData(heatmap);
-      setLeetCodeStats(stats);
-    } catch (error) {
-      console.error("LeetCode error:", error);
-    }
-  };
+        setLeetcodeData(heatmap);
+        setLeetCodeStats(stats);
+      } catch (error) {
+        console.error("LeetCode error:", error);
+      }
+    };
 
-  loadLeetCode();
-}, []);
-// stack list
-useEffect(() => {
-  const load = async () => {
-    const res = await fetchTechStack({
-      page: 1,
-      limit: 20,
-    });
+    loadLeetCode();
+  }, []);
+  // stack list
+  useEffect(() => {
+    const load = async () => {
+      const res = await fetchTechStack({
+        page: 1,
+        limit: 20,
+      });
 
-    setTechs(res.data);
-  };
+      setTechs(res.data);
+    };
 
-  load();
-}, []);
-// project list
-useEffect(() => {
-  const load = async () => {
-    const res = await fetchProjects({
-      page: 1,
-      limit: 3, 
-    });
+    load();
+  }, []);
+  // project list
+  useEffect(() => {
+    const load = async () => {
+      const res = await fetchProjects({
+        page: 1,
+        limit: 3,
+      });
 
-    setProjects(res.data);
-  };
+      setProjects(res.data);
+    };
 
-  load();
-}, []);
+    load();
+  }, []);
 
 
-const maxValue = Math.max(
-  gitStats?.stars || 0,
-  gitStats?.repos?.total || 0,
-  gitStats?.commits?.total || 0
-);
+  const maxValue = Math.max(
+    gitStats?.stars || 0,
+    gitStats?.repos?.total || 0,
+    gitStats?.commits?.total || 0
+  );
 
-const githubStatsConfig = [
-  {
-    label: "Stars",
-    value: gitStats?.stars || 0,
-    icon: <Star className="w-4 h-4 text-amber-400" />,
-    progress: (gitStats?.stars / maxValue) * 100,
-    colorClass: "text-amber-400",
-  },
-  {
-    label: "Repos",
-    value: gitStats?.repos?.total || 0,
-    icon: <GitBranch className="w-4 h-4 text-indigo-400" />,
-    progress: (gitStats?.repos?.total / maxValue) * 100,
-    colorClass: "text-indigo-400",
-  },
-  {
-    label: "Commits",
-    value: gitStats?.commits?.total || 0,
-    icon: <GitCommit className="w-4 h-4 text-emerald-400" />,
-    progress: (gitStats?.commits?.total / maxValue) * 100,
-    colorClass: "text-emerald-400",
-  },
-];
-const total = leetCodeStats?.totalSolved || 0;
-const leetCodeStatsConfig = [
-  {
-    label: "Total Problems Solved",
-    value: total,
-    icon: <Target className="w-4 h-4 text-cyan-400" />,
-    colorClass: "text-cyan-400",
-  },
-  {
-    label: "Easy Problems",
-    value: leetCodeStats?.easy || 0,
-    icon: <Smile className="w-4 h-4 text-emerald-400" />,
-    colorClass: "text-emerald-400",
-  },
-  {
-    label: "Medium Problems",
-    value: leetCodeStats?.medium || 0,
-    icon: <TrendingUp className="w-4 h-4 text-amber-400" />,
-    colorClass: "text-amber-400",
-  },
-  {
-    label: "Hard Problems",
-    value: leetCodeStats?.hard || 0,
-    icon: <Flame className="w-4 h-4 text-rose-500" />,
-    colorClass: "text-rose-500",
-  },
-];
+  const githubStatsConfig = [
+    {
+      label: "Stars",
+      value: gitStats?.stars || 0,
+      icon: <Star className="w-4 h-4 text-amber-400" />,
+      progress: (gitStats?.stars / maxValue) * 100,
+      colorClass: "text-amber-400",
+    },
+    {
+      label: "Repos",
+      value: gitStats?.repos?.total || 0,
+      icon: <GitBranch className="w-4 h-4 text-indigo-400" />,
+      progress: (gitStats?.repos?.total / maxValue) * 100,
+      colorClass: "text-indigo-400",
+    },
+    {
+      label: "Commits",
+      value: gitStats?.commits?.total || 0,
+      icon: <GitCommit className="w-4 h-4 text-emerald-400" />,
+      progress: (gitStats?.commits?.total / maxValue) * 100,
+      colorClass: "text-emerald-400",
+    },
+  ];
+  const total = leetCodeStats?.totalSolved || 0;
+  const leetCodeStatsConfig = [
+    {
+      label: "Total Problems Solved",
+      value: total,
+      icon: <Target className="w-4 h-4 text-cyan-400" />,
+      colorClass: "text-cyan-400",
+    },
+    {
+      label: "Easy Problems",
+      value: leetCodeStats?.easy || 0,
+      icon: <Smile className="w-4 h-4 text-emerald-400" />,
+      colorClass: "text-emerald-400",
+    },
+    {
+      label: "Medium Problems",
+      value: leetCodeStats?.medium || 0,
+      icon: <TrendingUp className="w-4 h-4 text-amber-400" />,
+      colorClass: "text-amber-400",
+    },
+    {
+      label: "Hard Problems",
+      value: leetCodeStats?.hard || 0,
+      icon: <Flame className="w-4 h-4 text-rose-500" />,
+      colorClass: "text-rose-500",
+    },
+  ];
 
 
 
@@ -393,10 +393,10 @@ const leetCodeStatsConfig = [
               // Overview
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard icon={<FolderKanban className="w-5 h-5" />} value="25+" label="Projects" delay={0} />
-              <StatCard icon={<Users className="w-5 h-5" />} value="15+" label="Clients" delay={100} />
-              <StatCard icon={<DollarSign className="w-5 h-5" />} value="$50K+" label="Revenue" delay={200} />
-              <StatCard icon={<Star className="w-5 h-5" />} value="100+" label="GitHub Stars" delay={300} />
+              <StatCard icon={<FolderKanban className="w-5 h-5" />} value="12+" label="Projects Built" delay={0} />
+              <StatCard icon={<Calendar className="w-5 h-5" />} value="2+" label="Years Experience" delay={100} />
+              <StatCard icon={<Code className="w-5 h-5" />} value="20+" label="Technologies" delay={200} />
+              <StatCard icon={<Network className="w-5 h-5" />} value="40+" label="REST APIs Integrated" delay={300} />
             </div>
           </div>
         </section>
@@ -413,51 +413,51 @@ const leetCodeStatsConfig = [
             <div className="grid lg:grid-cols-2 gap-8">
               {/* Left: Heatmaps */}
               {/* <div className="lg:col-span-1 space-y-4"> */}
-                <HeatmapGrid 
-                  title="GitHub Contributions" 
-                  weeks={14}
-                  subtitle="14 weeks of activity"
-                  data={githubData}
-                />
-                <HeatmapGrid 
-                  title="LeetCode Activity" 
-                  weeks={26}
-                  subtitle="26 weeks of problems solved"
-                  data={leetcodeData}
-                />
+              <HeatmapGrid
+                title="GitHub Contributions"
+                weeks={14}
+                subtitle="14 weeks of activity"
+                data={githubData}
+              />
+              <HeatmapGrid
+                title="LeetCode Activity"
+                weeks={26}
+                subtitle="26 weeks of problems solved"
+                data={leetcodeData}
+              />
               {/* </div> */}
               {/* Right: Code Stats */}
             </div>
-              <div className="grid md:grid-cols-2 gap-4 w-full mt-8 items-stretch">
-                    
-                <CodeStats
-  header="GitHub Protocol"
-  icon={<GitBranch className="w-4 h-4 text-cyan-400" />}
-  stats={githubStatsConfig}
-  color="cyan"
-/>
-                <CodeStats
-  header="LeetCode Protocol"
-  icon={<Code2 className="w-4 h-4 text-amber-400" />}
-  stats={leetCodeStatsConfig}
-  color="amber"
-/>
-              </div>
+            <div className="grid md:grid-cols-2 gap-4 w-full mt-8 items-stretch">
+
+              <CodeStats
+                header="GitHub Protocol"
+                icon={<GitBranch className="w-4 h-4 text-cyan-400" />}
+                stats={githubStatsConfig}
+                color="cyan"
+              />
+              <CodeStats
+                header="LeetCode Protocol"
+                icon={<Code2 className="w-4 h-4 text-amber-400" />}
+                stats={leetCodeStatsConfig}
+                color="amber"
+              />
+            </div>
           </div>
         </section>
 
-   
+
 
         {/* Tech Stack */}
-     <TechStack
-  title="// Tech Stack"
-  techs={techs.length > 0 ? techs.map(t => t.name) : ["React", "Node.js", "Express", "MongoDB", "TypeScript"]}
-/>
+        <TechStack
+          title="// Tech Stack"
+          techs={techs.length > 0 ? techs.map(t => t.name) : ["React", "Node.js", "Express", "MongoDB", "TypeScript"]}
+        />
 
-{/* recent projects */}
+        {/* recent projects */}
 
 
-       
+
         <section className="scroll-section opacity-0 px-6 md:px-0 mb-16">
           <div className="container">
             <div className="flex items-center justify-between mb-6">
@@ -469,18 +469,18 @@ const leetCodeStatsConfig = [
               </a>
             </div>
             <div className="grid md:grid-cols-3 gap-4" style={{ perspective: "1000px" }}>
-             
-             {
-              projects.length>0?<>
-               {projects.map((project) => (
-              <ProjectCard
-                key={project._id}
-                project={project}
-              />
-            ))}
-              </>:<NoDataFound message="No Project Found"/>
-             }
-             
+
+              {
+                projects.length > 0 ? <>
+                  {projects.map((project) => (
+                    <ProjectCard
+                      key={project._id}
+                      project={project}
+                    />
+                  ))}
+                </> : <NoDataFound message="No Project Found" />
+              }
+
             </div>
           </div>
         </section>

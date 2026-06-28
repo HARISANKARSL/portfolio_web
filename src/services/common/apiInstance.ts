@@ -127,9 +127,11 @@ apiInstance.interceptors.response.use(
       } catch (refreshError) {
         isRefreshing = false;
         processQueue(refreshError, null);
-        toastError("Session expired. Please log in again.");
         authService.clearStoredData();
-        window.location.href = "/login";
+        if (window.location.pathname.startsWith("/admin")) {
+          toastError("Session expired. Please log in again.");
+          window.location.href = "/login";
+        }
         return Promise.reject(refreshError);
       }
     }
