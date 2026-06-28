@@ -6,7 +6,6 @@ import axios, {
 } from "axios";
 import { authService } from "./authService";
 
-
 // ==============================
 // 🔔 TOAST (TEMP)
 // ==============================
@@ -23,6 +22,21 @@ const apiInstance: AxiosInstance = axios.create({
   baseURL,
   withCredentials: true, // ✅ for cookies
 });
+
+// Queue for replaying pending requests while token is refreshing
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
 
 // ==============================
 // 🔐 REQUEST INTERCEPTOR
@@ -64,21 +78,65 @@ apiInstance.interceptors.response.use(
     return response;
   },
 
-  (error: AxiosError<any>) => {
+  async (error: AxiosError<any>) => {
+    const originalRequest = error.config;
+
+    // Check if error is 401 and the request hasn't been retried yet
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      originalRequest &&
+      !(originalRequest as any)._retry
+    ) {
+      const hadToken = !!authService.getCurrentToken();
+
+      if (hadToken) {
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((token) => {
+              if (originalRequest.headers) {
+                originalRequest.headers["Authorization"] = `Bearer ${token}`;
+              }
+              return apiInstance(originalRequest);
+            })
+            .catch((err) => {
+              return Promise.reject(err);
+            });
+        }
+
+        (originalRequest as any)._retry = true;
+        isRefreshing = true;
+
+        try {
+          const newAccessToken = await authService.refreshToken();
+          if (newAccessToken) {
+            isRefreshing = false;
+            processQueue(null, newAccessToken);
+
+            if (originalRequest.headers) {
+              originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+            }
+            return apiInstance(originalRequest);
+          }
+        } catch (refreshError) {
+          isRefreshing = false;
+          processQueue(refreshError, null);
+          toastError("Session expired. Please log in again.");
+          authService.clearStoredData();
+          window.location.href = "/login";
+          return Promise.reject(refreshError);
+        }
+      }
+    }
+
+    // Standard non-401 error handling
     if (error.response) {
       const { status, data } = error.response;
-
-      if (status === 401) {
-        // Only redirect if there was a token (meaning the session actually expired)
-        // If there was no token, it was a guest request and we shouldn't force login
-        const hadToken = !!authService.getCurrentToken();
-        if (hadToken) {
-          toastError("Session expired");
-          // authService.logout();
-        }
-      } else if (status === 403) {
+      if (status === 403) {
         toastError("No permission");
-      } else {
+      } else if (status !== 401) {
         toastError(data?.message || "Something went wrong");
       }
     } else {

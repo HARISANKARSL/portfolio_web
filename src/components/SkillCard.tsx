@@ -23,7 +23,7 @@ const SkillCard = ({ skill, onEdit, onDelete }: SkillCardProps) => {
         <img
           src={skill.image}
           alt={skill.name}
-          className="w-full h-32 object-cover rounded"
+          className="w-full h-32 object-contain rounded"
         />
       )}
       <div className="space-y-2">

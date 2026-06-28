@@ -1,6 +1,9 @@
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Sun, Moon, Terminal } from "lucide-react";
+import { Sun, Moon, Terminal, Filter } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
+import { useFilter } from "./FilterContext";
+import DynamicFilter from "./DynamicFilter";
 
 import { Button } from "@/components/ui/button";
 import { authService } from "@/services/common/authService";
@@ -17,8 +20,11 @@ const navItems = [
 const DesktopNav = () => {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const { showFilterButton, activeFilters } = useFilter();
+  const [filterOpen, setFilterOpen] = useState(false);
   const isAuthenticated = authService.isAuthenticated();
-console.log(" isAuthenticated:", isAuthenticated);
+  console.log(" isAuthenticated:", isAuthenticated);
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border hidden md:block">
       <nav className="container flex items-center justify-between h-16">
@@ -51,6 +57,28 @@ console.log(" isAuthenticated:", isAuthenticated);
           >
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
+
+          {showFilterButton && (
+            <div className="relative ml-1">
+              <button
+                onClick={() => setFilterOpen(!filterOpen)}
+                className={`p-2 rounded-md transition-all duration-200 relative ${
+                  filterOpen || Object.keys(activeFilters).length > 0
+                    ? "text-primary bg-primary/10 hover:bg-primary/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+                aria-label="Open filters"
+              >
+                <Filter className="w-4 h-4" />
+                {Object.keys(activeFilters).length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-primary rounded-full animate-pulse shadow-[0_0_8px_#a855f7]" />
+                )}
+              </button>
+              {filterOpen && (
+                <DynamicFilter onClose={() => setFilterOpen(false)} />
+              )}
+            </div>
+          )}
 
           {/* {isAuthenticated ? (
             <Link to="/admin/skills">

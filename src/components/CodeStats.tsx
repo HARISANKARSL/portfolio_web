@@ -5,14 +5,15 @@ interface StatItemType {
   label: string;
   value: number | string;
   icon: React.ReactNode;
-   progress?: number;
+  progress?: number;
+  colorClass?: string;
 }
 
 interface CodeStatsProps {
   header: string;
   icon?: React.ReactNode;
   stats: StatItemType[];
-  color?: "cyan" | "purple";
+  color?: "cyan" | "purple" | "amber" | "emerald";
 }
 
 const CodeStats = ({
@@ -23,20 +24,26 @@ const CodeStats = ({
 }: CodeStatsProps) => {
   const ref = useRef<HTMLDivElement>(null);
 
-  const colorClass =
-    color === "cyan"
-      ? "text-cyan-400"
-      : "text-purple-400";
+  const colorClass = {
+    cyan: "text-cyan-400",
+    purple: "text-purple-400",
+    amber: "text-amber-400",
+    emerald: "text-emerald-400",
+  }[color] || "text-cyan-400";
 
-  const borderHover =
-    color === "cyan"
-      ? "hover:border-cyan-500/50"
-      : "hover:border-purple-500/50";
+  const borderHover = {
+    cyan: "hover:border-cyan-500/40 hover:shadow-[0_0_30px_rgba(6,182,212,0.12)]",
+    purple: "hover:border-purple-500/40 hover:shadow-[0_0_30px_rgba(168,85,247,0.12)]",
+    amber: "hover:border-amber-500/40 hover:shadow-[0_0_30px_rgba(245,158,11,0.12)]",
+    emerald: "hover:border-emerald-500/40 hover:shadow-[0_0_30px_rgba(16,185,129,0.12)]",
+  }[color] || "hover:border-cyan-500/40";
 
-  const bgIcon =
-    color === "cyan"
-      ? "bg-cyan-500/20"
-      : "bg-purple-500/20";
+  const bgIcon = {
+    cyan: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20",
+    purple: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+    amber: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+    emerald: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+  }[color] || "bg-cyan-500/10 text-cyan-400";
 
   useEffect(() => {
     import("gsap").then(({ default: gsap }) => {
@@ -72,7 +79,7 @@ const CodeStats = ({
   return (
     <div ref={ref}>
       <div
-       className={`card h-full flex flex-col opacity-0 bg-card border border-border/50 rounded-2xl p-6 backdrop-blur-sm transition-all duration-300 ${borderHover}`}
+        className={`card h-full flex flex-col opacity-0 bg-card border border-border/50 rounded-2xl p-6 backdrop-blur-sm transition-all duration-300 ${borderHover}`}
       >
         {/* Header */}
         <div className="flex items-center gap-2 mb-6">
@@ -83,22 +90,22 @@ const CodeStats = ({
         </div>
 
         {/* Stats */}
-    <div className="space-y-6 overflow-y-auto pr-2">
-  {stats.map((item, index) => (
-    <div key={index} className="stat-value opacity-0 space-y-1">
-      <p className="text-xs font-mono text-muted-foreground uppercase">
-        {item.label}
-      </p>
+        <div className="space-y-6 overflow-y-auto pr-2">
+          {stats.map((item, index) => (
+            <div key={index} className="stat-value opacity-0 space-y-1">
+              <p className="text-xs font-mono text-muted-foreground uppercase">
+                {item.label}
+              </p>
 
-      <div className="flex items-center gap-2">
-        {item.icon}
-        <span className={`text-2xl font-bold ${colorClass}`}>
-          {item.value}
-        </span>
-      </div>
+              <div className="flex items-center gap-2">
+                {item.icon}
+                <span className={`text-2xl font-bold ${item.colorClass || colorClass}`}>
+                  {item.value}
+                </span>
+              </div>
 
-      {/* ✅ Progress bar (optional) */}
-      {item.progress !== undefined && (
+              {/* ✅ Progress bar (optional) */}
+              {/* {item.progress !== undefined && (
         <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full ${
@@ -112,17 +119,17 @@ const CodeStats = ({
             }}
           />
         </div>
-      )}
-      
-    </div>
-    
-  ))}
-</div>
+      )} */}
+
+            </div>
+
+          ))}
+        </div>
 
       </div>
 
-     
-    
+
+
     </div>
   );
 };

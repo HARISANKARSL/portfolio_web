@@ -156,6 +156,61 @@ export const authService = {
 
   },
 
+  async refreshToken(): Promise<string | null> {
+    try {
+      const baseURL = getBaseURL();
+      const refreshToken = this.getRefreshToken();
+      if (!refreshToken) {
+        throw new Error("No refresh token available");
+      }
+
+      let res;
+      try {
+        res = await axios.post(
+          `${baseURL}auth/refresh-token`,
+          { refreshToken, refresh_token: refreshToken },
+          { withCredentials: true }
+        );
+      } catch (err: any) {
+        // Fallback to /refresh-token if auth/refresh-token returns 404
+        if (err.response?.status === 404) {
+          res = await axios.post(
+            `${baseURL}refresh-token`,
+            { refreshToken, refresh_token: refreshToken },
+            { withCredentials: true }
+          );
+        } else {
+          throw err;
+        }
+      }
+
+      const data = res.data;
+      const newAccessToken =
+        data.access_token ||
+        data.accessToken ||
+        data.token ||
+        data.data?.token ||
+        data.data?.accessToken;
+
+      const newRefreshToken =
+        data.refresh_token ||
+        data.refreshToken ||
+        data.data?.refreshToken ||
+        "";
+
+      if (newAccessToken) {
+        this.storeTokenData(newAccessToken, newRefreshToken);
+        console.log("🔑 Token refreshed successfully.");
+        return newAccessToken;
+      }
+      return null;
+    } catch (error) {
+      console.error("❌ Token refresh failed:", error);
+      this.clearStoredData();
+      return null;
+    }
+  },
+
   clearStoredData(): void {
     deleteCookie("token");
     deleteCookie("refresh_token");

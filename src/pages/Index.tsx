@@ -129,20 +129,23 @@ const githubStatsConfig = [
   {
     label: "Stars",
     value: gitStats?.stars || 0,
-    icon: <Star className="w-4 h-4 text-cyan-400" />,
+    icon: <Star className="w-4 h-4 text-amber-400" />,
     progress: (gitStats?.stars / maxValue) * 100,
+    colorClass: "text-amber-400",
   },
   {
     label: "Repos",
     value: gitStats?.repos?.total || 0,
-    icon: <GitBranch className="w-4 h-4 text-cyan-400" />,
+    icon: <GitBranch className="w-4 h-4 text-indigo-400" />,
     progress: (gitStats?.repos?.total / maxValue) * 100,
+    colorClass: "text-indigo-400",
   },
   {
     label: "Commits",
     value: gitStats?.commits?.total || 0,
-    icon: <GitCommit className="w-4 h-4 text-cyan-400" />,
+    icon: <GitCommit className="w-4 h-4 text-emerald-400" />,
     progress: (gitStats?.commits?.total / maxValue) * 100,
+    colorClass: "text-emerald-400",
   },
 ];
 const total = leetCodeStats?.totalSolved || 0;
@@ -151,24 +154,25 @@ const leetCodeStatsConfig = [
     label: "Total Problems Solved",
     value: total,
     icon: <Target className="w-4 h-4 text-cyan-400" />,
+    colorClass: "text-cyan-400",
   },
   {
     label: "Easy Problems",
     value: leetCodeStats?.easy || 0,
-    icon: <Smile className="w-4 h-4 text-green-400" />,
-   
+    icon: <Smile className="w-4 h-4 text-emerald-400" />,
+    colorClass: "text-emerald-400",
   },
   {
     label: "Medium Problems",
     value: leetCodeStats?.medium || 0,
-    icon: <TrendingUp className="w-4 h-4 text-yellow-400" />,
-   
+    icon: <TrendingUp className="w-4 h-4 text-amber-400" />,
+    colorClass: "text-amber-400",
   },
   {
     label: "Hard Problems",
     value: leetCodeStats?.hard || 0,
-    icon: <Flame className="w-4 h-4 text-red-400" />,
-    
+    icon: <Flame className="w-4 h-4 text-rose-500" />,
+    colorClass: "text-rose-500",
   },
 ];
 
@@ -430,11 +434,13 @@ const leetCodeStatsConfig = [
   header="GitHub Protocol"
   icon={<GitBranch className="w-4 h-4 text-cyan-400" />}
   stats={githubStatsConfig}
+  color="cyan"
 />
                 <CodeStats
   header="LeetCode Protocol"
-  icon={<GitBranch className="w-4 h-4 text-cyan-400" />}
+  icon={<Code2 className="w-4 h-4 text-amber-400" />}
   stats={leetCodeStatsConfig}
+  color="amber"
 />
               </div>
           </div>

@@ -109,13 +109,14 @@ const About = () => {
               About Me
             </TextReveal>
             <p className="about-desc opacity-0 text-muted-foreground text-lg leading-relaxed mb-4">
-              I'm a passionate full-stack developer with 4+ years of experience building web applications
-              that users love. I specialize in React, TypeScript, and modern backend technologies.
+
+              Full-Stack Developer with 2+ years of experience, countless cups of coffee, and an unhealthy number of browser tabs open. I love building modern web applications with React and Node.js, solving challenging problems, and turning complex requirements into simple user experiences.
+
             </p>
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-12">
-              <span className="about-tag opacity-0 flex items-center gap-1.5"><MapPin className="w-4 h-4 text-primary" /> San Francisco, CA</span>
-              <span className="about-tag opacity-0 flex items-center gap-1.5"><Calendar className="w-4 h-4 text-primary" /> 4+ Years Exp</span>
-              <span className="about-tag opacity-0 flex items-center gap-1.5"><Award className="w-4 h-4 text-primary" /> 25+ Projects</span>
+              <span className="about-tag opacity-0 flex items-center gap-1.5"><MapPin className="w-4 h-4 text-primary" /> Trivandrum, Kerala</span>
+              <span className="about-tag opacity-0 flex items-center gap-1.5"><Calendar className="w-4 h-4 text-primary" /> 2+ Years Exp</span>
+              <span className="about-tag opacity-0 flex items-center gap-1.5"><Award className="w-4 h-4 text-primary" /> 10+ Projects</span>
             </div>
           </div>
 

@@ -59,6 +59,7 @@ export const fetchTechStack = async (
           _id: item._id,
           name: item.name || "",
           description: item.description || "",
+          category: item.category || "",
           icon: item.icon || "",
           image: item.image || "",
           status: item.status || "active",
