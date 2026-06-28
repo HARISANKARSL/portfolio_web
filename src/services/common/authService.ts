@@ -158,17 +158,16 @@ export const authService = {
 
   async refreshToken(): Promise<string | null> {
     try {
-      const baseURL = getBaseURL();
+      const baseURL = getBaseURL() || "https://portfolio-backend-1-bsic.onrender.com/api/";
       const refreshToken = this.getRefreshToken();
-      if (!refreshToken) {
-        throw new Error("No refresh token available");
-      }
+      
+      const payload = refreshToken ? { refreshToken, refresh_token: refreshToken } : {};
 
       let res;
       try {
         res = await axios.post(
           `${baseURL}auth/refresh-token`,
-          { refreshToken, refresh_token: refreshToken },
+          payload,
           { withCredentials: true }
         );
       } catch (err: any) {
@@ -176,7 +175,7 @@ export const authService = {
         if (err.response?.status === 404) {
           res = await axios.post(
             `${baseURL}refresh-token`,
-            { refreshToken, refresh_token: refreshToken },
+            payload,
             { withCredentials: true }
           );
         } else {
@@ -203,6 +202,13 @@ export const authService = {
         console.log("🔑 Token refreshed successfully.");
         return newAccessToken;
       }
+      
+      if (res && res.status >= 200 && res.status < 300) {
+        console.log("🔑 Token refreshed via HttpOnly cookie.");
+        deleteCookie("token"); // Clear old expired JS token to rely on HttpOnly cookie
+        return "cookie";
+      }
+
       return null;
     } catch (error) {
       console.error("❌ Token refresh failed:", error);

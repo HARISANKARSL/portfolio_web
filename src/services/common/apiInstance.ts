@@ -88,46 +88,49 @@ apiInstance.interceptors.response.use(
       originalRequest &&
       !(originalRequest as any)._retry
     ) {
-      const hadToken = !!authService.getCurrentToken();
+      // Don't attempt to refresh if the request was to login or refresh itself
+      if (originalRequest.url?.includes('/login') || originalRequest.url?.includes('/refresh-token')) {
+        return Promise.reject(error);
+      }
 
-      if (hadToken) {
-        if (isRefreshing) {
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          })
-            .then((token) => {
-              if (originalRequest.headers) {
-                originalRequest.headers["Authorization"] = `Bearer ${token}`;
-              }
-              return apiInstance(originalRequest);
-            })
-            .catch((err) => {
-              return Promise.reject(err);
-            });
-        }
-
-        (originalRequest as any)._retry = true;
-        isRefreshing = true;
-
-        try {
-          const newAccessToken = await authService.refreshToken();
-          if (newAccessToken) {
-            isRefreshing = false;
-            processQueue(null, newAccessToken);
-
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
             if (originalRequest.headers) {
-              originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+              originalRequest.headers["Authorization"] = `Bearer ${token}`;
             }
             return apiInstance(originalRequest);
-          }
-        } catch (refreshError) {
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
+      (originalRequest as any)._retry = true;
+      isRefreshing = true;
+
+      try {
+        const newAccessToken = await authService.refreshToken();
+        if (newAccessToken) {
           isRefreshing = false;
-          processQueue(refreshError, null);
-          toastError("Session expired. Please log in again.");
-          authService.clearStoredData();
-          window.location.href = "/login";
-          return Promise.reject(refreshError);
+          processQueue(null, newAccessToken);
+
+          if (originalRequest.headers && newAccessToken !== "cookie") {
+            originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+          }
+          return apiInstance(originalRequest);
+        } else {
+          throw new Error("Failed to get new access token");
         }
+      } catch (refreshError) {
+        isRefreshing = false;
+        processQueue(refreshError, null);
+        toastError("Session expired. Please log in again.");
+        authService.clearStoredData();
+        window.location.href = "/login";
+        return Promise.reject(refreshError);
       }
     }
 
