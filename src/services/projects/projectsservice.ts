@@ -1,4 +1,4 @@
-import { post } from "../common/apiService";
+import { post, remove } from "../common/apiService";
 
 export interface FetchProjectsParams {
   page?: number;
@@ -37,4 +37,12 @@ export const fetchProjects = async (
     data: res?.data || [],
     pagination: res?.pagination || null,
   };
+};
+
+export const saveProject = async (data: any) => {
+  return post("/projects/save", data);
+};
+
+export const deleteProject = async (id: string) => {
+  return remove(`/projects/${id}`);
 };

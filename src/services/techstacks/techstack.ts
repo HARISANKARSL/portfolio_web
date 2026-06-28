@@ -67,16 +67,20 @@ export const fetchTechStack = async (
           updatedAt: item.updatedAt,
         }))
       : [],
-
     pagination: response?.pagination || {
       currentPage: 1,
       pageSize: 10,
       totalCount: 0,
-      totalPages: 0,
+      totalPages: 1,
       hasNextPage: false,
       hasPreviousPage: false,
     },
   };
+};
+
+export const fetchSkillOptions = async () => {
+  const response = await get(skillsApi.fetchOptions);
+  return response?.data || [];
 };
 
 

@@ -46,7 +46,8 @@ export interface FormFieldConfig {
     | "checkbox"
     | "radio"
     | "date"
-    | "tel";
+    | "tel"
+    | "multi-select";
   label?: string;
   placeholder?: string;
   value?: string | number | boolean;
@@ -248,6 +249,85 @@ const FormRow = ({ field, onChange, onBlur }: FormRowProps) => {
                         )}
                       />
                       {option.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        );
+
+      case "multi-select":
+        const selectedValues = Array.isArray(field.value) ? field.value : typeof field.value === "string" && field.value ? field.value.split(",") : [];
+        return (
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className={cn("w-full justify-between h-auto min-h-10 py-2", field.className)}
+                disabled={field.disabled}
+              >
+                <div className="flex flex-wrap gap-1.5 items-center flex-1">
+                  {selectedValues.length > 0
+                    ? selectedValues.map((val: string) => {
+                        const label = field.options?.find((opt) => opt.value === val)?.label || val;
+                        return (
+                          <span key={val} className="bg-secondary text-secondary-foreground hover:bg-secondary/80 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors">
+                            {label}
+                          </span>
+                        );
+                      })
+                    : <span className="text-muted-foreground font-normal">{field.placeholder || "Select options..."}</span>}
+                </div>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+              <Command>
+                <CommandInput placeholder={field.placeholder || "Search..."} />
+                <CommandEmpty>No option found.</CommandEmpty>
+                <CommandGroup className="max-h-[250px] overflow-y-auto">
+                  <CommandItem
+                    onSelect={() => {
+                      if (selectedValues.length === (field.options?.length || 0)) {
+                        onChange([]);
+                      } else {
+                        onChange(field.options?.map((opt) => opt.value) || []);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center space-x-2 w-full cursor-pointer">
+                      <Checkbox
+                        checked={selectedValues.length > 0 && selectedValues.length === field.options?.length}
+                        className="pointer-events-none"
+                      />
+                      <span className="font-semibold">Select All</span>
+                    </div>
+                  </CommandItem>
+                  {field.options?.map((option) => (
+                    <CommandItem
+                      key={option.value}
+                      value={option.value}
+                      keywords={[option.label]}
+                      onSelect={() => {
+                        let newSelected = [...selectedValues];
+                        if (newSelected.includes(option.value)) {
+                          newSelected = newSelected.filter((v) => v !== option.value);
+                        } else {
+                          newSelected.push(option.value);
+                        }
+                        onChange(newSelected);
+                      }}
+                    >
+                      <div className="flex items-center space-x-2 w-full cursor-pointer">
+                        <Checkbox
+                          checked={selectedValues.includes(option.value)}
+                          className="pointer-events-none"
+                        />
+                        <span>{option.label}</span>
+                      </div>
                     </CommandItem>
                   ))}
                 </CommandGroup>

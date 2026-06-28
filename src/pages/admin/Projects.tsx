@@ -1,328 +1,764 @@
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import { Trash2, Edit, ExternalLink } from "lucide-react";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import {
+  ExternalLink,
+  Edit,
+  Trash2,
+} from "lucide-react";
+
 import DashboardLayout from "@/components/DashboardLayout";
+import SectionHeader from "@/components/SectionHeader";
+import DataTable, {
+  DataTableColumn,
+} from "@/components/DataTable";
+
+import TableToolbar from "@/components/TableToolbar";
+import FormRow, {
+  FormFieldConfig,
+} from "@/components/FormRow";
+
+import { toast } from "@/components/ui/use-toast";
+import { FilterProvider, useFilter } from "@/components/FilterContext";
+
+import {
+  fetchProjects,
+  saveProject,
+  deleteProject,
+} from "@/services/projects/projectsservice";
+import { fetchSkillOptions } from "@/services/techstacks/techstack";
 
 interface Project {
-  id: string;
-  title: string;
-  description: string;
-  technologies: string;
-  liveUrl: string;
-  githubUrl: string;
-  imageUrl: string;
+  _id: string;
+  name: string;
+  description?: string;
+  technologies?: any; // String or Array depending on backend
+  link?: string;
+  githubUrl?: string;
+  image?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const ProjectsAdmin = () => {
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: "1",
-      title: "E-Commerce Platform",
-      description: "A full-stack e-commerce platform with payment integration",
-      technologies: "React, Node.js, MongoDB",
-      liveUrl: "https://example.com",
-      githubUrl: "https://github.com/example",
-      imageUrl: "",
-    },
-  ]);
+type ViewType = "table" | "grid";
 
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    technologies: "",
-    liveUrl: "",
-    githubUrl: "",
-    imageUrl: "",
+const ProjectsAdmin = () => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [viewType, setViewType] = useState<ViewType>("table");
+  const [skillOptions, setSkillOptions] = useState<{ label: string, value: string }[]>([]);
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    pageSize: 10,
+    totalCount: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
   });
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  // Search & Global Filters
+  const [search, setSearch] = useState("");
+  const { setFilterConfig, activeFilters } = useFilter();
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Dialog
+  const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Delete Confirmation
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+
+  // Form
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    technologies: [] as string[],
+    link: "",
+    githubUrl: "",
+    image: "",
+    status: "active"
+  });
+  console.log("form", formData);
+
+  useEffect(() => {
+    fetchSkillOptions().then((data) => {
+      setSkillOptions(
+        data.map((item: any) => {
+          if (typeof item === 'string') {
+            return { label: item, value: item };
+          }
+          const idKey = Object.keys(item).find(key => key.toLowerCase().endsWith('id'));
+          const idValue = idKey ? item[idKey] : undefined;
+          return {
+            label: item.label || item.name || item.title || String(item),
+            value: item.value || item.code || item._id || item.id || idValue || item.name || String(item),
+          };
+        })
+      );
+    }).catch(console.error);
+  }, []);
+
+  // Configure popover filters on mount
+  useEffect(() => {
+    setFilterConfig([
+      {
+        id: "status",
+        label: "Status",
+        type: "select",
+        iconType: "status",
+        options: [
+          { label: "Active", value: "active" },
+          { label: "Inactive", value: "inactive" }
+        ]
+      }
+    ]);
+  }, [setFilterConfig]);
+
+  // FORM CONFIG
+  const formFieldsConfig: FormFieldConfig[] = [
+    {
+      id: "name",
+      name: "name",
+      type: "text",
+      label: "Project Name",
+      placeholder: "E-Commerce Platform",
+      value: formData.name,
+      required: true,
+      disabled: isSaving,
+    },
+    {
+      id: "technologies",
+      name: "technologies",
+      type: "multi-select",
+      label: "Technologies",
+      placeholder: "Select technologies...",
+      value: formData.technologies,
+      options: skillOptions,
+      disabled: isSaving,
+    },
+    {
+      id: "link",
+      name: "link",
+      type: "text",
+      label: "Live URL",
+      placeholder: "https://example.com",
+      value: formData.link,
+      disabled: isSaving,
+    },
+    {
+      id: "githubUrl",
+      name: "githubUrl",
+      type: "text",
+      label: "GitHub URL",
+      placeholder: "https://github.com/example/project",
+      value: formData.githubUrl,
+      disabled: isSaving,
+    },
+    {
+      id: "image",
+      name: "image",
+      type: "text",
+      label: "Image URL",
+      placeholder: "https://example.com/image.png",
+      value: formData.image,
+      disabled: isSaving,
+    },
+    {
+      id: "description",
+      name: "description",
+      type: "textarea",
+      label: "Description",
+      placeholder: "Describe your project...",
+      value: formData.description,
+      disabled: isSaving,
+    },
+    {
+      id: "status",
+      name: "status",
+      type: "select",
+      label: "Status",
+      placeholder: "Select Status",
+      value: formData.status,
+      required: true,
+      disabled: isSaving,
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Inactive", value: "inactive" }
+      ]
+    }
+  ];
+
+  // FETCH PROJECTS
+  const loadProjects = useCallback(
+    async (
+      currentPage = 1,
+      currentPageSize = 10,
+      searchQuery = "",
+      appliedFilters = {}
+    ) => {
+      try {
+        setIsLoading(true);
+
+        const cleanedFilters = Object.entries(
+          appliedFilters
+        ).reduce<Record<string, string>>(
+          (acc, [key, value]) => {
+            if (
+              value !== undefined &&
+              value !== null &&
+              value !== ""
+            ) {
+              acc[key] = value as string;
+            }
+            return acc;
+          },
+          {}
+        );
+
+        const payload = {
+          search: searchQuery,
+          page: currentPage,
+          limit: currentPageSize,
+          filters: cleanedFilters,
+        };
+
+        const res = await fetchProjects(payload as any);
+        const projectData = res?.data || [];
+        setProjects(projectData);
+
+        if (res?.pagination) {
+          setPagination(res.pagination);
+        }
+      } catch (error) {
+        console.error("Failed to fetch projects", error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  // INITIAL LOAD
+  useEffect(() => {
+    loadProjects(page, pageSize, search, activeFilters);
+  }, []);
+
+  // SEARCH / FILTER debounce
+  useEffect(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    debounceTimer.current = setTimeout(() => {
+      setPage(1);
+      loadProjects(1, pageSize, search, activeFilters);
+    }, 500);
+
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [search, activeFilters]);
+
+  // FIELD CHANGE
+  const handleFieldChange = (
+    fieldId: string,
+    value: string | number | boolean | string[]
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [fieldId]: value,
+    }));
   };
 
-  const handleAddProject = () => {
-    if (
-      !formData.title ||
-      !formData.description ||
-      !formData.technologies
-    ) {
-      alert("Please fill all required fields");
+  // ADD / EDIT PROJECT
+  const handleAddProject = async () => {
+    if (!formData.name) {
+      toast({
+        title: "Required Field Missing",
+        description: "Project name is required.",
+        variant: "destructive",
+      });
       return;
     }
 
-    if (editingId) {
-      setProjects(
-        projects.map((proj) =>
-          proj.id === editingId
-            ? { ...proj, ...formData }
-            : proj
-        )
-      );
+    try {
+      setIsSaving(true);
+
+      const payload: any = {
+        ...(editingId ? { _id: editingId } : {}),
+        name: formData.name,
+        status: formData.status || "active",
+      };
+
+      if (formData.description !== undefined) {
+        payload.description = formData.description.trim();
+      }
+      payload.technologies = formData.technologies || [];
+      if (formData.link !== undefined) {
+        payload.link = formData.link.trim();
+      }
+      if (formData.githubUrl !== undefined) {
+        payload.githubUrl = formData.githubUrl.trim();
+      }
+      if (formData.image !== undefined) {
+        payload.image = formData.image.trim();
+      }
+
+      const result = await saveProject(payload);
+      console.log("Project saved successfully:", result);
+
+      toast({
+        title: "Success",
+        description: `Project "${formData.name}" saved successfully!`,
+      });
+
+      // Reset form and close dialog
       setEditingId(null);
-    } else {
-      setProjects([
-        ...projects,
-        {
-          id: Date.now().toString(),
-          ...formData,
-        },
-      ]);
-    }
+      setFormData({
+        name: "",
+        description: "",
+        technologies: [],
+        link: "",
+        githubUrl: "",
+        image: "",
+        status: "active"
+      });
+      setOpen(false);
 
-    setFormData({
-      title: "",
-      description: "",
-      technologies: "",
-      liveUrl: "",
-      githubUrl: "",
-      imageUrl: "",
-    });
-    setOpen(false);
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this project?")) {
-      setProjects(projects.filter((proj) => proj.id !== id));
+      // Refresh the projects list from the API
+      await loadProjects(page, pageSize, search, activeFilters);
+    } catch (error) {
+      console.error("Failed to save project:", error);
+      toast({
+        title: "Error Saving Project",
+        description: "Failed to save the project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
+  // DELETE
+  const handleDeleteClick = (id: string) => {
+    setProjectToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!projectToDelete) return;
+
+    try {
+      setIsLoading(true);
+      await deleteProject(projectToDelete);
+      console.log("Project deleted successfully:", projectToDelete);
+      toast({
+        title: "Success",
+        description: "Project deleted successfully!",
+      });
+      await loadProjects(page, pageSize, search, activeFilters);
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      toast({
+        title: "Error Deleting Project",
+        description: "Failed to delete the project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    }
+  };
+
+  // EDIT
   const handleEdit = (project: Project) => {
+    setEditingId(project._id);
+    let techArr: string[] = [];
+    if (typeof project.technologies === "string" && project.technologies !== "") {
+      techArr = project.technologies.split(",");
+    } else if (Array.isArray(project.technologies)) {
+      techArr = project.technologies.map((t: any) => {
+        if (typeof t === 'string') return t;
+        const idKey = Object.keys(t).find(key => key.toLowerCase().endsWith('id'));
+        return t.value || t.code || t._id || t.id || (idKey ? t[idKey] : undefined) || t.name || t;
+      });
+    }
+
     setFormData({
-      title: project.title,
-      description: project.description,
-      technologies: project.technologies,
-      liveUrl: project.liveUrl,
-      githubUrl: project.githubUrl,
-      imageUrl: project.imageUrl,
+      name: project.name || "",
+      description: project.description || "",
+      technologies: techArr,
+      link: project.link || "",
+      githubUrl: project.githubUrl || "",
+      image: project.image || "",
+      status: project.status || "active",
     });
-    setEditingId(project.id);
     setOpen(true);
   };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    loadProjects(newPage, pageSize, search, activeFilters);
+  };
+
+  const handlePageSizeChange = (value: string) => {
+    const size = parseInt(value, 10);
+    setPageSize(size);
+    setPage(1);
+    loadProjects(1, size, search, activeFilters);
+  };
+
+  // TABLE COLUMNS
+  const tableColumns: DataTableColumn[] = [
+    {
+      key: "name",
+      label: "Project Name",
+      render: (_, row) => (
+        <span className="font-medium">{row?.name}</span>
+      ),
+    },
+    {
+      key: "technologies",
+      label: "Technologies",
+      render: (_, row) => {
+        let techArr: any[] = [];
+        if (typeof row?.technologies === "string") {
+          techArr = row.technologies.split(",");
+        } else if (Array.isArray(row?.technologies)) {
+          techArr = row.technologies;
+        }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {techArr.map((tech, idx) => (
+              <span
+                key={idx}
+                className="px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 rounded text-xs"
+              >
+                {typeof tech === "object" ? tech.name : tech.trim()}
+              </span>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      key: "link",
+      label: "Links",
+      render: (_, row) => (
+        <div className="flex space-x-2">
+          {row?.link && (
+            <a
+              href={row.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Live
+            </a>
+          )}
+          {row?.githubUrl && (
+            <a
+              href={row.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              <ExternalLink className="w-3 h-3" />
+              GitHub
+            </a>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (value) => {
+        const isActive = value?.toLowerCase() === "active";
+        return (
+          <span
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize ${isActive
+                ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+                : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+              }`}
+          >
+            {isActive ? "Active" : "Inactive"}
+          </span>
+        );
+      },
+    },
+  ];
+
+  const pageNumbers = Array.from(
+    { length: Math.max(pagination.totalPages, 1) },
+    (_, index) => index + 1
+  );
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Projects Management</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Showcase your projects and portfolio work
-            </p>
+        {/* HEADER */}
+        <SectionHeader
+          title="Projects Management"
+          description="Manage and showcase your portfolio projects"
+          button={true}
+          buttonLabel="Add Project"
+          onButtonClick={() => {
+            setEditingId(null);
+            setFormData({
+              name: "",
+              description: "",
+              technologies: [],
+              link: "",
+              githubUrl: "",
+              image: "",
+              status: "active"
+            });
+            setOpen(true);
+          }}
+        />
+
+        {/* TOOLBAR (Search, Filters, View Toggle) */}
+        <TableToolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          viewType={viewType}
+          onViewChange={setViewType}
+          searchPlaceholder="Search projects..."
+        />
+
+        {/* DATA */}
+        {viewType === "table" ? (
+          <>
+            <DataTable
+              data={projects || []}
+              config={{
+                columns: tableColumns,
+                columnOrder: ["name", "technologies", "link", "status"],
+                isLoading: isLoading,
+                emptyMessage: "No projects found",
+                actions: "Actions",
+                actionRender: (project: Project) => (
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(project)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteClick(project._id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  </div>
+                ),
+              }}
+            />
+            {pagination.totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4 border-t pt-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Rows per page</span>
+                  <Select
+                    value={pageSize.toString()}
+                    onValueChange={handlePageSizeChange}
+                  >
+                    <SelectTrigger className="w-[80px]">
+                      <SelectValue placeholder={pageSize} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[10, 25, 50, 100].map((size) => (
+                        <SelectItem key={size} value={size.toString()}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(Math.max(1, page - 1))}
+                    disabled={!pagination.hasPreviousPage}
+                  >
+                    Previous
+                  </Button>
+
+                  <div className="flex gap-1">
+                    {pageNumbers.map((p) => (
+                      <Button
+                        key={p}
+                        variant={page === p ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(p)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {p}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(Math.min(pagination.totalPages, page + 1))}
+                    disabled={!pagination.hasNextPage}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
+            {isLoading ? (
+              <div className="col-span-full py-12 text-center text-muted-foreground">
+                Loading projects...
+              </div>
+            ) : projects.length > 0 ? (
+              projects.map((project) => (
+                <div key={project._id} className="relative group bg-card border rounded-lg p-5">
+                  <h3 className="font-semibold text-lg">{project.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{project.description}</p>
+
+                  <div className="absolute top-4 right-4 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="secondary" size="sm" onClick={() => handleEdit(project)}>
+                      Edit
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(project._id)}>
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full py-12 text-center text-muted-foreground">
+                No projects found.
+              </div>
+            )}
           </div>
+        )}
 
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setEditingId(null);
-                  setFormData({
-                    title: "",
-                    description: "",
-                    technologies: "",
-                    liveUrl: "",
-                    githubUrl: "",
-                    imageUrl: "",
-                  });
-                }}
-              >
-                + Add Project
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingId ? "Edit Project" : "Add New Project"}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingId
-                    ? "Update your project details below"
-                    : "Fill in your project details"}
-                </DialogDescription>
-              </DialogHeader>
+        {/* CREATE / EDIT DIALOG */}
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingId ? "Edit Project" : "Add Project"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingId
+                  ? "Update the details of this project."
+                  : "Add a new project to your portfolio."}
+              </DialogDescription>
+            </DialogHeader>
 
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Project Title *</Label>
-                  <Input
-                    id="title"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    placeholder="e.g., E-Commerce Platform"
-                  />
-                </div>
+            <div className="space-y-6 py-4">
+              {formFieldsConfig.map((field) => (
+                <FormRow
+                  key={field.id}
+                  field={field}
+                  onChange={(value) =>
+                    handleFieldChange(field.id, value)
+                  }
+                />
+              ))}
 
-                <div>
-                  <Label htmlFor="description">Description *</Label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Describe your project"
-                    rows={4}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="technologies">Technologies *</Label>
-                  <Input
-                    id="technologies"
-                    name="technologies"
-                    value={formData.technologies}
-                    onChange={handleInputChange}
-                    placeholder="e.g., React, Node.js, MongoDB"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="imageUrl">Image URL</Label>
-                  <Input
-                    id="imageUrl"
-                    name="imageUrl"
-                    value={formData.imageUrl}
-                    onChange={handleInputChange}
-                    placeholder="https://example.com/image.jpg"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="liveUrl">Live URL</Label>
-                  <Input
-                    id="liveUrl"
-                    name="liveUrl"
-                    value={formData.liveUrl}
-                    onChange={handleInputChange}
-                    placeholder="https://example.com"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="githubUrl">GitHub URL</Label>
-                  <Input
-                    id="githubUrl"
-                    name="githubUrl"
-                    value={formData.githubUrl}
-                    onChange={handleInputChange}
-                    placeholder="https://github.com/example/project"
-                  />
-                </div>
-
-                <Button onClick={handleAddProject} className="w-full">
-                  {editingId ? "Update Project" : "Add Project"}
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleAddProject} disabled={isSaving}>
+                  {isSaving
+                    ? "Saving..."
+                    : editingId
+                      ? "Update Project"
+                      : "Save Project"}
                 </Button>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Technologies</TableHead>
-                <TableHead>Links</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projects.length > 0 ? (
-                projects.map((project) => (
-                  <TableRow key={project.id}>
-                    <TableCell className="font-medium">{project.title}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {project.technologies.split(",").map((tech, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs"
-                          >
-                            {tech.trim()}
-                          </span>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="space-x-2">
-                      {project.liveUrl && (
-                        <a
-                          href={project.liveUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Live
-                        </a>
-                      )}
-                      {project.githubUrl && (
-                        <a
-                          href={project.githubUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          GitHub
-                        </a>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(project)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(project.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
-                    No projects yet. Add one to get started!
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </Card>
+        {/* DELETE CONFIRMATION */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the project.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                disabled={isLoading}
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              >
+                {isLoading ? "Deleting..." : "Delete Project"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
 };
 
-export default ProjectsAdmin;
+const ProjectsAdminWrapper = () => (
+  <FilterProvider>
+    <ProjectsAdmin />
+  </FilterProvider>
+);
+
+export default ProjectsAdminWrapper;
