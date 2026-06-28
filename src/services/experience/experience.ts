@@ -4,9 +4,9 @@ import { post, get, remove, put } from "../common/apiService";
 export interface ExperienceItem {
   _id?: string;
   id?: string;
-  title?: string;
+  title?: any;
   position?: string;
-  company: string;
+  company: any;
   location?: string;
   startDate: string;
   endDate?: string;

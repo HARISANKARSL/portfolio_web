@@ -1,19 +1,34 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Layout from "@/components/Layout";
 import TextReveal from "@/components/TextReveal";
 import { MapPin, Calendar, Award, Briefcase } from "lucide-react";
-
-const timeline = [
-  { year: "2024", title: "Senior Developer", company: "Tech Corp", desc: "Leading frontend architecture" },
-  { year: "2023", title: "Full-Stack Developer", company: "StartupXYZ", desc: "Built core platform from scratch" },
-  { year: "2022", title: "Frontend Developer", company: "Agency Co", desc: "Delivered 20+ client projects" },
-  { year: "2021", title: "Junior Developer", company: "Freelance", desc: "Started professional journey" },
-];
+import { fetchExperiences, ExperienceItem } from "@/services/experience/experience";
 
 const About = () => {
   const ref = useRef<HTMLDivElement>(null);
+  const [experiences, setExperiences] = useState<ExperienceItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const loadExperiences = async () => {
+      try {
+        const response = await fetchExperiences({ limit: 50, sortBy: "startDate", sortOrder: -1 });
+        const sorted = (response.data || []).sort((a, b) => 
+          new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+        );
+        setExperiences(sorted);
+      } catch (error) {
+        console.error("Failed to fetch experiences:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadExperiences();
+  }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+
     import("gsap").then(({ default: gsap }) => {
       import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
         gsap.registerPlugin(ScrollTrigger);
@@ -93,7 +108,7 @@ const About = () => {
         return () => ctx.revert();
       });
     });
-  }, []);
+  }, [isLoading]);
 
   return (
     <Layout>
@@ -127,18 +142,30 @@ const About = () => {
             </h2>
             <div className="timeline-container relative space-y-6">
               <div className="timeline-line absolute left-[5px] top-2 bottom-2 w-px bg-primary/30" style={{ transformOrigin: "top" }} />
-              {timeline.map((item, i) => (
-                <div key={item.year} className="timeline-item opacity-0 flex gap-4 items-start relative">
+              {experiences.map((item, i) => (
+                <div key={item._id || i} className="timeline-item opacity-0 flex gap-4 items-start relative">
                   <div className="flex flex-col items-center relative z-10">
                     <div className="timeline-dot w-3 h-3 rounded-full bg-primary mt-1.5" />
                   </div>
                   <div className="pb-6">
-                    <span className="text-xs font-mono text-primary">{item.year}</span>
-                    <h3 className="font-semibold text-foreground">{item.title}</h3>
+                    <span className="text-xs font-mono text-primary">
+                      {item.startDate ? (
+                        item.currentlyWorking ? (
+                          `${new Date(item.startDate).getFullYear()} - Present`
+                        ) : item.endDate && new Date(item.startDate).getFullYear() !== new Date(item.endDate).getFullYear() ? (
+                          `${new Date(item.startDate).getFullYear()} - ${new Date(item.endDate).getFullYear()}`
+                        ) : (
+                          new Date(item.startDate).getFullYear()
+                        )
+                      ) : ""}
+                    </span>
+                    <h3 className="font-semibold text-foreground">
+                      {typeof item.title === 'object' ? item.title?.name : (item.title || item.position)}
+                    </h3>
                     <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Briefcase className="w-3 h-3" /> {item.company}
+                      <Briefcase className="w-3 h-3" /> {typeof item.company === 'object' ? item.company?.name : item.company}
                     </p>
-                    <p className="text-sm text-muted-foreground mt-1">{item.desc}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
                   </div>
                 </div>
               ))}
